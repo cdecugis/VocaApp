@@ -12,6 +12,13 @@ const client = new textToSpeech.TextToSpeechClient({
 });
 
 const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+    res.send("Hello from backend!");
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -39,8 +46,6 @@ app.post("/api/tts", async (req, res) => {
     }
 });
 
-
-const PORT = 3001;
 
 const auth = new google.auth.GoogleAuth({
     keyFile: "credentials.json",

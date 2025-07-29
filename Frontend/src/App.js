@@ -10,6 +10,7 @@ export default function App() {
   const [newRo, setNewRo] = useState("");
   const [corrigerMode, setCorrigerMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [historiqueReponses, setHistoriqueReponses] = useState([]);
 
   const API = "http://192.168.1.44:3001";
 
@@ -37,6 +38,14 @@ export default function App() {
     });
     const data = await res.json();
     setEtat(data.resultat === "OK" ? "✅ Correct !" : "❌ Faux !");
+    const estCorrect = data.resultat === "OK";
+
+    // Ajoute la nouvelle réponse, et garde les 100 dernières
+    setHistoriqueReponses(prev => {
+      const updated = [...prev, estCorrect];
+      return updated.length > 100 ? updated.slice(updated.length - 100) : updated;
+    });
+
     setLoading(false);
 
     if (data.resultat === "OK") {
@@ -97,11 +106,19 @@ export default function App() {
     synth.speak(utterance);
   }
 
+  const score = historiqueReponses.filter(r => r).length;
+
   return (
     <div className="min-h-screen bg-yellow-50 p-4 flex flex-col items-center justify-start overflow-auto">
       <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center">
         Traduction Français → Roumain
       </h1>
+
+      {historiqueReponses.length > 0 && (
+        <div className="text-lg mt-2">
+          Score : {score}/{historiqueReponses.length} bonnes réponses
+        </div>
+      )}
 
       <div className="text-xl sm:text-2xl mb-2">{mot}</div>
 
