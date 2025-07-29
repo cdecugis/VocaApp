@@ -1,0 +1,33 @@
+name: Deploy React App to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main  # ou ta branche principale
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  # ou ta version préférée
+
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./frontend
+
+    - name: Build React app
+      run: npm run build
+      working-directory: ./frontend
+
+    - name: Deploy to Firebase Hosting
+      uses: w9jds/firebase-action@v2.2.0
+      with:
+        args: deploy --only hosting
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
