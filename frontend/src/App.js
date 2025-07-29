@@ -12,7 +12,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [historiqueReponses, setHistoriqueReponses] = useState([]);
 
-  const API = "http://192.168.1.44:3001";
+  const API = process.env.REACT_APP_API;
 
   // Tirer un mot depuis le backend
   async function getWord() {
