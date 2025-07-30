@@ -28,6 +28,6 @@ jobs:
         run: |
           gcloud run deploy backend \
             --source . \
-            --region global \
+            --region europe-west1 \
             --platform managed \
             --allow-unauthenticated
