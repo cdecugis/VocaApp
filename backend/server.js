@@ -3,13 +3,8 @@ import cors from "cors";
 import { google } from "googleapis";
 
 import textToSpeech from "@google-cloud/text-to-speech";
-import fs from "fs";
-import util from "util";
-import path from "path";
 
-const client = new textToSpeech.TextToSpeechClient({
-    keyFilename: "credentials.json", // Chemin vers le JSON téléchargé
-});
+const client = new textToSpeech.TextToSpeechClient();
 
 const app = express();
 
