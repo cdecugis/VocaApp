@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRef } from "react";
 
 export default function App() {
   const [mot, setMot] = useState("");
@@ -8,11 +9,34 @@ export default function App() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newFr, setNewFr] = useState("");
   const [newRo, setNewRo] = useState("");
+  const [bonneReponse, setBonneReponse] = useState("");
   const [corrigerMode, setCorrigerMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [historiqueReponses, setHistoriqueReponses] = useState([]);
+  const inputRef = useRef(null);
+  const [statMot, setStatMot] = useState(null);
 
   const API = process.env.REACT_APP_API;
+
+  const playSound = (type) => {
+    const audio = new Audio(
+      type === "OK"
+        ? "success.mp3"
+        : "failure.mp3"
+    );
+    if (type === "OK") {
+      audio.volume = 0.2;
+    } else {
+      audio.volume = 0.5;
+    }
+    audio.play();
+  };
+
+  // Récupérer les stats depuis le backend
+  async function getStats() {
+    const res = await fetch(`${API}/api/getStats`);
+    const data = await res.json();
+    setStatMot(data);
+  }
 
   // Tirer un mot depuis le backend
   async function getWord() {
@@ -24,6 +48,8 @@ export default function App() {
     setReponse("");
     setEtat("");
     setCorrigerMode(false);
+    inputRef.current?.focus();
+    // Ne PAS effacer statMot ici
     setLoading(false);
   }
 
@@ -36,27 +62,23 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index, reponse }),
     });
+
     const data = await res.json();
-    setEtat(data.resultat === "OK" ? "✅ Correct !" : "❌ Faux !");
-    const estCorrect = data.resultat === "OK";
 
-    // Ajoute la nouvelle réponse, et garde les 100 dernières
-    setHistoriqueReponses(prev => {
-      const updated = [...prev, estCorrect];
-      return updated.length > 100 ? updated.slice(updated.length - 100) : updated;
-    });
-
-    setLoading(false);
+    playSound(data.resultat); // Son OK ou KO
 
     if (data.resultat === "OK") {
-      setEtat("✅ Correct !");
+      setEtat(`✅ Correct ! : ${data.bonneReponse}`);
+      setStatMot(data.stats);  // Affiche les stats du mot
       jouerPrononciation(data.bonneReponse);
-      setTimeout(getWord, 1500);
     } else {
       setEtat(`❌ Faux ! La bonne réponse était : ${data.bonneReponse}`);
+      setStatMot(data.stats);  // Affiche aussi stats même en KO
       jouerPrononciation(data.bonneReponse);
       setCorrigerMode(true);
     }
+    setLoading(false);
+    setBonneReponse(data.bonneReponse);
 
   }
 
@@ -96,33 +118,19 @@ export default function App() {
     getWord();
   }, []);
 
-  function prononcer(texte) {
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(texte);
-    // Choisir une voix roumaine si dispo
-    const voixRoumaine = synth.getVoices().find(v => v.lang.startsWith("ro"));
-    if (voixRoumaine) utterance.voice = voixRoumaine;
-    utterance.lang = "ro-RO"; // Langue roumaine
-    synth.speak(utterance);
-  }
 
-  const score = historiqueReponses.filter(r => r).length;
 
   return (
-    <div className="min-h-screen bg-yellow-50 p-4 flex flex-col items-center justify-start overflow-auto">
+    <div className="min-h-screen bg-blue-50 p-4 flex flex-col items-center justify-start overflow-auto">
       <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center">
         Traduction Français → Roumain
       </h1>
 
-      {historiqueReponses.length > 0 && (
-        <div className="text-lg mt-2">
-          Score : {score}/{historiqueReponses.length} bonnes réponses
-        </div>
-      )}
-
       <div className="text-xl sm:text-2xl mb-2">{mot}</div>
 
       <input
+        ref={inputRef}
+        tabIndex={0}
         className="border rounded p-2 w-full max-w-md"
         type="text"
         value={reponse}
@@ -136,28 +144,48 @@ export default function App() {
         onClick={valider}
         disabled={corrigerMode || loading}
         className={`mt-3 font-semibold px-6 py-2 rounded transition 
-    ${loading ? "bg-gray-400" : "bg-green-500 hover:bg-green-600"} 
-    text-white`}
+      ${loading ? "bg-gray-400" : "bg-green-500 hover:bg-green-600 w-full max-w-md"} 
+      text-white`}
       >
         {loading ? "..." : "Valider"}
       </button>
 
       {etat && <p className="mt-2 text-xl">{etat}</p>}
 
-      {corrigerMode && (
-        <button
-          onClick={() => {
-            setCorrigerMode(false);
-            setReponse("");
-            setEtat("");
-          }}
-          className="mt-2 text-sm underline text-blue-700"
-        >
-          Réessayer ce mot
-        </button>
+      {statMot && (
+        <div className="mt-4 text-sm text-gray-600">
+          <p>{statMot.tentatives} / {statMot.reussites} ( {statMot.pourcentage}% )</p>
+        </div>
       )}
 
-      {/* Ligne de séparation */}
+      {corrigerMode && (
+        <div className="mt-2 flex space-x-3">
+          <button
+            onClick={() => {
+              setCorrigerMode(false);
+              setEtat("");
+              setStatMot(null); // ← tu veux réinitialiser les stats
+              // ⚠️ NE PAS vider setReponse ici
+            }}
+            className="text-sm bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-1 rounded"
+          >
+            Réessayer ce mot
+          </button>
+
+          <button
+            onClick={() => {
+              setShowAddForm(true);
+              setNewFr(mot);  // préremplit avec le mot en cours
+              setNewRo(bonneReponse); // ← préremplit avec la bonne réponse
+            }}
+            className="text-sm bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-1 rounded"
+          >
+            Corriger Dictionnaire
+          </button>
+        </div>
+
+      )}
+
       <hr className="my-4 w-full max-w-md border-gray-300" />
 
       <button
@@ -171,7 +199,7 @@ export default function App() {
         onClick={() => setShowAddForm(!showAddForm)}
         className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded w-full max-w-md"
       >
-        {showAddForm ? "Annuler ajout" : "Ajouter un mot"}
+        {showAddForm ? "Annuler correction" : "Ajouter un mot"}
       </button>
 
       {showAddForm && (
@@ -194,9 +222,9 @@ export default function App() {
             onClick={ajouterMot}
             disabled={loading}
             className={`bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded transition 
-    ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            {loading ? "Ajout..." : "Ajouter"}
+            {loading ? "Corr..." : "Corriger"}
           </button>
         </div>
       )}

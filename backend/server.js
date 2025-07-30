@@ -15,6 +15,18 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+function nettoyerRoumain(texte) {
+    return texte
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "") // enlève les accents visuels
+        .replace(/[șş]/gi, "s")
+        .replace(/[țţ]/gi, "t")
+        .replace(/ă/gi, "a")
+        .replace(/[âî]/gi, "i")
+        .toLowerCase()
+        .trim();
+}
+
 app.get("/", (req, res) => {
     res.send("Hello from backend!");
 });
@@ -91,6 +103,7 @@ function calculerPoids(mot, histo) {
     return (totalKO + 1) / (totalOK + 1); // +1 pour éviter division par 0
 }
 
+
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...");
     try {
@@ -128,9 +141,9 @@ app.post("/api/sendAnswer", async (req, res) => {
 
         const motFr = lexique[index][0];
         const bonneReponse = lexique[index][1];
-        const resultat = reponse.trim().toLowerCase() === bonneReponse.trim().toLowerCase() ? "OK" : "KO";
+        const isCorrect = nettoyerRoumain(reponse.trim().toLowerCase()) === nettoyerRoumain(bonneReponse.trim().toLowerCase());
+        const resultat = isCorrect ? "OK" : "KO";
 
-        // Ajouter une ligne dans "histo"
         await sheets.spreadsheets.values.append({
             spreadsheetId: SHEET_ID,
             range: "histo!A:D",
@@ -140,14 +153,51 @@ app.post("/api/sendAnswer", async (req, res) => {
             },
         });
 
-        res.json({ resultat, bonneReponse });
+        const ligne = parseInt(index) + 2;
+
+        const countRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `lexique!C${ligne}:D${ligne}`,
+        });
+
+        let tentatives = parseInt(countRes.data.values?.[0]?.[0] || "0");
+        console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
+        let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
+        console.log(`Réussites pour le mot ${motFr} : ${reussites}`);
+
+        tentatives += 1;
+        console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
+        if (isCorrect) reussites += 1;
+        console.log(`Réussites pour le mot ${motFr} : ${reussites}`);
+
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SHEET_ID,
+            range: `lexique!C${ligne}:D${ligne}`,
+            valueInputOption: "RAW",
+            requestBody: {
+                values: [[tentatives, reussites]],
+            },
+        });
+
+        const pourcentage = tentatives > 0 ? Math.round((reussites / tentatives) * 100) : 0;
+
+        res.json({
+            resultat,
+            bonneReponse,
+            stats: {
+                tentatives,
+                reussites,
+                pourcentage,
+            }
+        });
+
     } catch (err) {
         console.error(err);
         res.status(500).send("Erreur serveur");
     }
 });
 
-// Ajouter un mot (fr, ro)
+// ✅ Déplacés ici :
 app.post("/api/addWord", async (req, res) => {
     try {
         const { motFr, motRo } = req.body;
@@ -155,6 +205,27 @@ app.post("/api/addWord", async (req, res) => {
 
         const sheets = await getSheets();
 
+        // 1. Récupérer lexique entier
+        const lexRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: "lexique!A2:B",
+        });
+        const lexique = lexRes.data.values || [];
+
+        // 2. Filtrer pour enlever l'entrée avec motFr == motFr envoyé
+        const nouveauLexique = lexique.filter(([fr]) => fr !== motFr);
+
+        // 3. Ecraser la feuille avec le lexique filtré
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SHEET_ID,
+            range: "lexique!A2:B",
+            valueInputOption: "RAW",
+            requestBody: {
+                values: nouveauLexique,
+            },
+        });
+
+        // 4. Ajouter la nouvelle paire corrigée en fin de lexique
         await sheets.spreadsheets.values.append({
             spreadsheetId: SHEET_ID,
             range: "lexique!A:B",
@@ -171,4 +242,23 @@ app.post("/api/addWord", async (req, res) => {
     }
 });
 
+app.get("/api/getStats", async (req, res) => {
+    try {
+        const sheets = await getSheets();
+        const histo = await getHisto(sheets);
+        const last100 = histo.slice(-100);
+        const bonnes = last100.filter(row => (row[3] || "").trim().toUpperCase() === "OK").length;
+
+        res.json({
+            bonnes,
+            total: last100.length,
+        });
+
+    } catch (err) {
+        console.error("Erreur /api/getStats:", err);
+        res.status(500).json({ error: "Erreur serveur lors de la récupération des stats." });
+    }
+});
+
+// ✅ Enfin, on démarre le serveur
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
