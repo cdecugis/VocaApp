@@ -87,36 +87,39 @@ async function getHisto(sheets) {
     return res.data.values || [];
 }
 
-// Calcul pondération simple : plus un mot a d’erreurs KO, plus il a de poids
-function calculerPoids(mot, histo) {
-    let totalOK = 0,
-        totalKO = 0;
-    for (const ligne of histo) {
-        if (ligne[0] === mot) {
-            if (ligne[3] === "OK") totalOK++;
-            else if (ligne[3] === "KO") totalKO++;
-        }
-    }
-    return (totalKO + 1) / (totalOK + 1); // +1 pour éviter division par 0
-}
 
+// Calcul pondération simple : plus un mot a d’erreurs KO, plus il a de poids
+function calculerPoids(index, tentatives, reussites) {
+    if (!tentatives) return 11; // Jamais demandé
+    const taux = reussites / tentatives;
+    return 1 + Math.round((1 - taux) * 9); // Entre 1 (100% réussite) et 10 (0%)
+}
 
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...");
     try {
         const sheets = await getSheets();
         const lexique = await getLexique(sheets);
-        const histo = await getHisto(sheets);
 
-        // Construire un tableau avec poids
-        const data = lexique.map(([fr, ro], i) => ({
-            index: i,
-            motFr: fr,
-            motRo: ro,
-            poids: calculerPoids(fr, histo),
-        }));
+        const resStats = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `lexique!C2:D${lexique.length + 1}`,
+        });
+        const stats = resStats.data.values || [];
 
-        // Tirage aléatoire pondéré
+        // Construire tableau avec poids
+        const data = lexique.map(([fr, ro], i) => {
+            const statLine = stats[i] || [];
+            const tentatives = parseInt(statLine[0]) || 0;
+            const reussites = parseInt(statLine[1]) || 0;
+            return {
+                index: i,
+                motFr: fr,
+                motRo: ro,
+                poids: calculerPoids(i, tentatives, reussites),
+            };
+        });
+
         const totalPoids = data.reduce((acc, el) => acc + el.poids, 0);
         let r = Math.random() * totalPoids;
         const selected = data.find((el) => (r -= el.poids) < 0) || data[0];
@@ -127,6 +130,7 @@ app.get("/api/getWord", async (req, res) => {
         res.status(500).send("Erreur serveur");
     }
 });
+
 
 app.post("/api/sendAnswer", async (req, res) => {
     try {
