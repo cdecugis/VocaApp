@@ -5,7 +5,7 @@ import { google } from "googleapis";
 import textToSpeech from "@google-cloud/text-to-speech";
 
 const client = new textToSpeech.TextToSpeechClient({
-    keyFilename: "credentials.json", // Chemin vers le JSON téléchargé
+    keyFilename: "/secrets/credentials.json"
 });
 
 const app = express();
@@ -57,7 +57,7 @@ app.post("/api/tts", async (req, res) => {
 
 
 const auth = new google.auth.GoogleAuth({
-    keyFile: "credentials.json",
+    keyFilename: "/secrets/credentials.json"
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
