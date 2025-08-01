@@ -15,7 +15,7 @@ export default function App() {
   const inputRef = useRef(null);
   const [statMot, setStatMot] = useState(null);
 
-  const API = process.env.REACT_APP_API;
+  const API = process.env.REACT_APP_API || "http://localhost:3001";
 
   const playSound = (type) => {
     const audio = new Audio(
@@ -34,6 +34,7 @@ export default function App() {
   // Tirer un mot depuis le backend
   async function getWord() {
     setLoading(true);
+    console.log("API = ", API); // ex: http://localhost:3001
     const res = await fetch(`${API}/api/getWord`);
     const data = await res.json();
     setMot(data.motFr);

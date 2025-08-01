@@ -1,17 +1,34 @@
 import express from "express";
 import cors from "cors";
 import { google } from "googleapis";
-
 import textToSpeech from "@google-cloud/text-to-speech";
 
-const client = new textToSpeech.TextToSpeechClient({
-    keyFilename: "credentials.json"
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let credentialsPath;
+
+if (fs.existsSync("/secrets/credentials.json")) {
+    credentialsPath = "/secrets/credentials.json"; // Cloud Run
+} else {
+    credentialsPath = path.join(__dirname, "credentials.json"); // Local
+}
+
+console.log("Using credentials from:", credentialsPath);
+
+const auth = new google.auth.GoogleAuth({
+    keyFile: credentialsPath,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
 const app = express();
 
 // démarrage du serveur par défaut sur port 3000
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 function nettoyerRoumain(texte) {
     return texte
@@ -32,6 +49,10 @@ app.get("/", (req, res) => {
 app.use(cors());
 app.use(express.json());
 
+const ttsclient = new textToSpeech.TextToSpeechClient({
+    keyFilename: credentialsPath,   // Chemin vers le fichier de clés
+});
+
 // Endpoint pour générer le son TTS du texte reçu
 app.post("/api/tts", async (req, res) => {
     try {
@@ -45,7 +66,7 @@ app.post("/api/tts", async (req, res) => {
             audioConfig: { audioEncoding: "MP3" },
         };
 
-        const [response] = await client.synthesizeSpeech(request);
+        const [response] = await ttsclient.synthesizeSpeech(request);
 
         // Envoie le buffer audio en réponse
         res.set("Content-Type", "audio/mpeg");
@@ -54,12 +75,6 @@ app.post("/api/tts", async (req, res) => {
         console.error(err);
         res.status(500).send("Erreur synthèse vocale");
     }
-});
-
-// gestion des identifiants pour l'API googlesheet
-const auth = new google.auth.GoogleAuth({
-    keyFilename: "credentials.json",
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
 // Ton ID Google Sheet
@@ -95,6 +110,10 @@ function calculerPoids(index, tentatives, reussites) {
     const taux = reussites / tentatives;
     return 1 + Math.round((1 - taux) * 9); // Entre 1 (100% réussite) et 10 (0%)
 }
+
+app.get("/api/test", (req, res) => {
+    res.json({ message: "ok" });
+});
 
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...");
