@@ -31,6 +31,7 @@ export default function App() {
     audio.play();
   };
 
+  console.log("API = ", API); // Affiche l'URL de l'API
   // Tirer un mot depuis le backend
   async function getWord() {
     setLoading(true);
