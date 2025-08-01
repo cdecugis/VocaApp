@@ -128,32 +128,39 @@ app.get("/api/getWord", async (req, res) => {
     console.log("credentialsPath:", credentialsPath);
     try {
         const sheets = await getSheets();
+        console.log("Sheets client récupéré");
         const lexique = await getLexique(sheets);
+        console.log("Lexique récupéré, nombre de mots :", lexique.length);
 
         const resStats = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
             range: `lexique!C2:D${lexique.length + 1}`,
         });
-        const stats = resStats.data.values || [];
+        console.log("Statistiques récupérées");
+        if (!resStats.data.values || resStats.data.values.length === 0) {
+            const stats = resStats.data.values || [];
 
-        // Construire tableau avec poids
-        const data = lexique.map(([fr, ro], i) => {
-            const statLine = stats[i] || [];
-            const tentatives = parseInt(statLine[0]) || 0;
-            const reussites = parseInt(statLine[1]) || 0;
-            return {
-                index: i,
-                motFr: fr,
-                motRo: ro,
-                poids: calculerPoids(i, tentatives, reussites),
-            };
-        });
+            // Construire tableau avec poids
+            const data = lexique.map(([fr, ro], i) => {
+                const statLine = stats[i] || [];
+                const tentatives = parseInt(statLine[0]) || 0;
+                const reussites = parseInt(statLine[1]) || 0;
+                return {
+                    index: i,
+                    motFr: fr,
+                    motRo: ro,
+                    poids: calculerPoids(i, tentatives, reussites),
+                };
+            });
+            console.log("Données avec poids calculé :", data);
 
-        const totalPoids = data.reduce((acc, el) => acc + el.poids, 0);
-        let r = Math.random() * totalPoids;
-        const selected = data.find((el) => (r -= el.poids) < 0) || data[0];
+            const totalPoids = data.reduce((acc, el) => acc + el.poids, 0);
+            let r = Math.random() * totalPoids;
+            const selected = data.find((el) => (r -= el.poids) < 0) || data[0];
 
-        res.json({ index: selected.index, motFr: selected.motFr });
+            res.json({ index: selected.index, motFr: selected.motFr });
+            console.log(`Mot sélectionné : ${selected.motFr} (index: ${selected.index})`);
+        }
     } catch (err) {
         console.error(err);
         res.status(500).send("Erreur serveur");
