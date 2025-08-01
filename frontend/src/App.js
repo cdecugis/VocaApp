@@ -36,7 +36,14 @@ export default function App() {
   async function getWord() {
     setLoading(true);
     console.log("API = ", API); // ex: http://localhost:3001
+
     const res = await fetch(`${API}/api/getWord`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Backend error:", errorText);
+      throw new Error(errorText);
+    }
+
     const data = await res.json();
     setMot(data.motFr);
     setIndex(data.index);
