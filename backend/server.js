@@ -125,6 +125,7 @@ app.get("/api/test", (req, res) => {
 
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...");
+    console.log("credentialsPath:", credentialsPath);
     try {
         const sheets = await getSheets();
         const lexique = await getLexique(sheets);
