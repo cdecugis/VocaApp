@@ -10,24 +10,17 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Si variable d'env 'credentials' contient le JSON complet (string)
-if (process.env.credentials) {
-    const credentialsJson = process.env.credentials;
+let credentialsPath;
 
-    // Chemin temporaire où écrire le fichier JSON
+if (fs.existsSync("/secrets/credentials.json")) {
+    credentialsPath = "/secrets/credentials.json"; // secret monté en fichier
+} else if (process.env.credentials) {
+    // Si tu as la variable d'env avec le JSON complet (string), écris-le dans un fichier temporaire
     const tmpPath = path.join(__dirname, "credentials_temp.json");
-
-    // Écris le contenu dans ce fichier au démarrage
-    fs.writeFileSync(tmpPath, credentialsJson);
-
-    console.log("Credentials written to", tmpPath);
-
-    // Utilise tmpPath comme chemin pour tes clients Google
-    var credentialsPath = tmpPath;
-
+    fs.writeFileSync(tmpPath, process.env.credentials);
+    credentialsPath = tmpPath;
 } else {
-    // Fallback local
-    var credentialsPath = path.join(__dirname, "credentials.json");
+    credentialsPath = path.join(__dirname, "credentials.json"); // local dev
 }
 
 // Ensuite tu utilises credentialsPath comme avant
