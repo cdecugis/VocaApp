@@ -10,11 +10,34 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Utilise la variable d'environnement credentials si définie, sinon fichier local
-const credentialsPath = process.env.credentials
-    ? process.env.credentials
-    : path.join(__dirname, "credentials.json");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Si variable d'env 'credentials' contient le JSON complet (string)
+if (process.env.credentials) {
+    const credentialsJson = process.env.credentials;
+
+    // Chemin temporaire où écrire le fichier JSON
+    const tmpPath = path.join(__dirname, "credentials_temp.json");
+
+    // Écris le contenu dans ce fichier au démarrage
+    fs.writeFileSync(tmpPath, credentialsJson);
+
+    console.log("Credentials written to", tmpPath);
+
+    // Utilise tmpPath comme chemin pour tes clients Google
+    var credentialsPath = tmpPath;
+
+} else {
+    // Fallback local
+    var credentialsPath = path.join(__dirname, "credentials.json");
+}
+
+// Ensuite tu utilises credentialsPath comme avant
 console.log("Using credentials from:", credentialsPath);
 
 // Authentification Google Sheets
