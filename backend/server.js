@@ -5,11 +5,12 @@ import { google } from "googleapis";
 import textToSpeech from "@google-cloud/text-to-speech";
 
 const client = new textToSpeech.TextToSpeechClient({
-    keyFilename: "/secrets/credentials.json"
+    keyFilename: "credentials.json"
 });
 
 const app = express();
 
+// démarrage du serveur par défaut sur port 3000
 const PORT = process.env.PORT || 3000;
 
 function nettoyerRoumain(texte) {
@@ -55,9 +56,9 @@ app.post("/api/tts", async (req, res) => {
     }
 });
 
-
+// gestion des identifiants pour l'API googlesheet
 const auth = new google.auth.GoogleAuth({
-    keyFilename: "/secrets/credentials.json"
+    keyFilename: "credentials.json",
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 

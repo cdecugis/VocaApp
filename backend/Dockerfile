@@ -5,4 +5,4 @@ RUN npm install
 COPY . .
 CMD ["node", "server.js"]
 EXPOSE 8080
-COPY credentials.json ./credentials.json
+COPY credentials.json /app/credentials.json

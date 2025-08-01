@@ -31,13 +31,6 @@ export default function App() {
     audio.play();
   };
 
-  // Récupérer les stats depuis le backend
-  async function getStats() {
-    const res = await fetch(`${API}/api/getStats`);
-    const data = await res.json();
-    setStatMot(data);
-  }
-
   // Tirer un mot depuis le backend
   async function getWord() {
     setLoading(true);
@@ -79,7 +72,6 @@ export default function App() {
     }
     setLoading(false);
     setBonneReponse(data.bonneReponse);
-
   }
 
   // Ajouter un nouveau mot
