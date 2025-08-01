@@ -10,19 +10,22 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let credentialsPath;
-
-if (fs.existsSync("/secrets/credentials.json")) {
-    credentialsPath = "/secrets/credentials.json"; // Cloud Run
-} else {
-    credentialsPath = path.join(__dirname, "credentials.json"); // Local
-}
+// Utilise la variable d'environnement credentials si définie, sinon fichier local
+const credentialsPath = process.env.credentials
+    ? process.env.credentials
+    : path.join(__dirname, "credentials.json");
 
 console.log("Using credentials from:", credentialsPath);
 
+// Authentification Google Sheets
 const auth = new google.auth.GoogleAuth({
     keyFile: credentialsPath,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+});
+
+// Client TTS
+const ttsclient = new textToSpeech.TextToSpeechClient({
+    keyFilename: credentialsPath,   // Chemin vers le fichier de clés
 });
 
 const app = express();
@@ -48,10 +51,6 @@ app.get("/", (req, res) => {
 
 app.use(cors());
 app.use(express.json());
-
-const ttsclient = new textToSpeech.TextToSpeechClient({
-    keyFilename: credentialsPath,   // Chemin vers le fichier de clés
-});
 
 // Endpoint pour générer le son TTS du texte reçu
 app.post("/api/tts", async (req, res) => {
