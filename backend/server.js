@@ -10,13 +10,6 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // Si variable d'env 'credentials' contient le JSON complet (string)
 if (process.env.credentials) {
     const credentialsJson = process.env.credentials;
@@ -53,7 +46,7 @@ const ttsclient = new textToSpeech.TextToSpeechClient({
 
 const app = express();
 
-// démarrage du serveur par défaut sur port 3000
+// démarrage du serveur par défaut sur port 3001
 const PORT = process.env.PORT || 3001;
 
 function nettoyerRoumain(texte) {
