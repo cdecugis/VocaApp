@@ -155,7 +155,7 @@ export default function App() {
 
       {statMot && (
         <div className="mt-4 text-sm text-gray-600">
-          <p>{statMot.tentatives} / {statMot.reussites} ( {statMot.pourcentage}% )</p>
+          <p>{statMot.reussites} / {statMot.tentatives} ( {statMot.pourcentage}% )</p>
         </div>
       )}
 
