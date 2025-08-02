@@ -6,7 +6,6 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('🔥 Unhandled Rejection:', reason);
 });
 
-
 import express from "express";
 import cors from "cors";
 import { google } from "googleapis";
@@ -25,15 +24,14 @@ if (fs.existsSync("/secrets/credentials.json")) {
     credentialsPath = "/secrets/credentials.json"; // secret monté en fichier
     console.log("Using credentials from mounted secret: /secrets/credentials.json");
 }
-
-// else if (process.env.credentials) {
-// Si tu as la variable d'env avec le JSON complet (string), écris-le dans un fichier temporaire
-//    const tmpPath = path.join(__dirname, "credentials_temp.json");
-//    fs.writeFileSync(tmpPath, process.env.credentials);
-//    credentialsPath = tmpPath;
-// } else {
-//     credentialsPath = path.join(__dirname, "credentials.json"); // local dev
-// }
+else if (process.env.credentials) {
+    // Si tu as la variable d'env avec le JSON complet (string), écris-le dans un fichier temporaire
+    const tmpPath = path.join(__dirname, "credentials_temp.json");
+    fs.writeFileSync(tmpPath, process.env.credentials);
+    credentialsPath = tmpPath;
+} else {
+    credentialsPath = path.join(__dirname, "credentials.json"); // local dev
+}
 
 // Ensuite tu utilises credentialsPath comme avant
 console.log("Using credentials from:", credentialsPath);
@@ -136,9 +134,7 @@ app.get("/api/test", (req, res) => {
 });
 
 app.get("/api/getWord", async (req, res) => {
-    console.log("API URL =", process.env.API || "non défini");
-    console.log("Using credentials from:", credentialsPath);
-    console.log("Tirage d'un mot...");
+    console.log("Tirage d'un mot...", credentialsPath);
     try {
         const sheets = await getSheets();
         console.log("Récupération du lexique...");
