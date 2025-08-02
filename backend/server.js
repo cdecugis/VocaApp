@@ -165,6 +165,7 @@ app.get("/api/getWord", async (req, res) => {
         console.log(`Mot tiré: ${selected.motFr} (index: ${selected.index})`);
 
     } catch (err) {
+        console.error("credential pagh used: ", credentialsPath)
         console.error(err);
         res.status(500).send("Erreur serveur");
     }
