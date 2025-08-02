@@ -1,3 +1,12 @@
+process.on('uncaughtException', (err) => {
+    console.error('🔥 Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🔥 Unhandled Rejection:', reason);
+});
+
+
 import express from "express";
 import cors from "cors";
 import { google } from "googleapis";
@@ -127,9 +136,9 @@ app.get("/api/test", (req, res) => {
 });
 
 app.get("/api/getWord", async (req, res) => {
-    console.log("Tirage d'un mot...");
-    console.log("API = ", API); // ex: http://localhost:3001
+    console.log("API URL =", process.env.API || "non défini");
     console.log("Using credentials from:", credentialsPath);
+    console.log("Tirage d'un mot...");
     try {
         const sheets = await getSheets();
         console.log("Récupération du lexique...");
