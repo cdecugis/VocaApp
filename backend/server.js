@@ -14,14 +14,17 @@ let credentialsPath;
 
 if (fs.existsSync("/secrets/credentials.json")) {
     credentialsPath = "/secrets/credentials.json"; // secret monté en fichier
-} else if (process.env.credentials) {
-    // Si tu as la variable d'env avec le JSON complet (string), écris-le dans un fichier temporaire
-    const tmpPath = path.join(__dirname, "credentials_temp.json");
-    fs.writeFileSync(tmpPath, process.env.credentials);
-    credentialsPath = tmpPath;
-} else {
-    credentialsPath = path.join(__dirname, "credentials.json"); // local dev
+    console.log("Using credentials from mounted secret: /secrets/credentials.json");
 }
+
+// else if (process.env.credentials) {
+// Si tu as la variable d'env avec le JSON complet (string), écris-le dans un fichier temporaire
+//    const tmpPath = path.join(__dirname, "credentials_temp.json");
+//    fs.writeFileSync(tmpPath, process.env.credentials);
+//    credentialsPath = tmpPath;
+// } else {
+//     credentialsPath = path.join(__dirname, "credentials.json"); // local dev
+// }
 
 // Ensuite tu utilises credentialsPath comme avant
 console.log("Using credentials from:", credentialsPath);
