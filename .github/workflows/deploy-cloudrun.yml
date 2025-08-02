@@ -24,5 +24,14 @@ jobs:
         with:
           project_id: integral-linker-435615-v7
 
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/integral-linker-435615-v7/backend .
+
+      - name: Push Docker image
+        run: |
+          gcloud auth configure-docker
+          docker push gcr.io/integral-linker-435615-v7/backend
+
       - name: Deploy to Cloud Run
         run: gcloud run deploy backend --image gcr.io/integral-linker-435615-v7/backend --region europe-west1 --platform managed --allow-unauthenticated --update-secrets /secrets/credentials.json=credentials-json:latest

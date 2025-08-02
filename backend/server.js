@@ -134,18 +134,15 @@ app.get("/api/test", (req, res) => {
 });
 
 app.get("/api/getWord", async (req, res) => {
-    console.log("Tirage d'un mot !", credentialsPath);
+    console.log("Tirage d'un mot...", credentialsPath);
     try {
         const sheets = await getSheets();
-        console.log("Récupération du lexique...");
         const lexique = await getLexique(sheets);
-        console.log("Lexique récupéré, taille:", lexique.length);
 
         const resStats = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
             range: `lexique!C2:D${lexique.length + 1}`,
         });
-        console.log("Récupération des stats...");
         const stats = resStats.data.values || [];
 
         // Construire tableau avec poids
@@ -160,7 +157,6 @@ app.get("/api/getWord", async (req, res) => {
                 poids: calculerPoids(i, tentatives, reussites),
             };
         });
-        console.log("Calcul des poids...");
 
         const totalPoids = data.reduce((acc, el) => acc + el.poids, 0);
         let r = Math.random() * totalPoids;
@@ -170,7 +166,6 @@ app.get("/api/getWord", async (req, res) => {
         console.log(`Mot tiré: ${selected.motFr} (index: ${selected.index})`);
 
     } catch (err) {
-        console.error("credential pagh used: ", credentialsPath)
         console.error(err);
         res.status(500).send("Erreur serveur");
     }
