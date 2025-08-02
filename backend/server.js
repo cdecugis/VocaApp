@@ -39,7 +39,7 @@ const ttsclient = new textToSpeech.TextToSpeechClient({
 
 const app = express();
 
-// démarrage du serveur par défaut sur port 3001
+// démarrage du serveur par défaut sur 8080 online ou port 3001 en local
 const PORT = process.env.PORT || 3001;
 
 function nettoyerRoumain(texte) {
@@ -125,6 +125,8 @@ app.get("/api/test", (req, res) => {
 
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...");
+    console.log("API = ", API); // ex: http://localhost:3001
+    console.log("Using credentials from:", credentialsPath);
     try {
         const sheets = await getSheets();
         console.log("Récupération du lexique...");
