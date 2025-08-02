@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function App() {
   const [mot, setMot] = useState("");
@@ -18,32 +17,19 @@ export default function App() {
   const API = process.env.REACT_APP_API || "http://localhost:3001";
 
   const playSound = (type) => {
-    const audio = new Audio(
-      type === "OK"
-        ? "success.mp3"
-        : "failure.mp3"
-    );
-    if (type === "OK") {
-      audio.volume = 0.2;
-    } else {
-      audio.volume = 0.5;
-    }
+    const audio = new Audio(type === "OK" ? "success.mp3" : "failure.mp3");
+    audio.volume = type === "OK" ? 0.2 : 0.5;
     audio.play();
   };
 
-  console.log("API = ", API); // Affiche l'URL de l'API
-  // Tirer un mot depuis le backend
   async function getWord() {
     setLoading(true);
-    console.log("API = ", API); // ex: http://localhost:3001
-
     const res = await fetch(`${API}/api/getWord`);
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Backend error:", errorText);
       throw new Error(errorText);
     }
-
     const data = await res.json();
     setMot(data.motFr);
     setIndex(data.index);
@@ -51,14 +37,13 @@ export default function App() {
     setEtat("");
     setCorrigerMode(false);
     inputRef.current?.focus();
-    // Ne PAS effacer statMot ici
     setLoading(false);
   }
 
-  // Valider la réponse
   async function valider() {
     if (index === null || loading) return;
     setLoading(true);
+
     const res = await fetch(`${API}/api/sendAnswer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -66,29 +51,29 @@ export default function App() {
     });
 
     const data = await res.json();
+    playSound(data.resultat);
 
-    playSound(data.resultat); // Son OK ou KO
+    setBonneReponse(data.bonneReponse);
+    setStatMot(data.stats); // même si faux
+    jouerPrononciation(data.bonneReponse);
 
     if (data.resultat === "OK") {
       setEtat(`✅ Correct ! : ${data.bonneReponse}`);
-      setStatMot(data.stats);  // Affiche les stats du mot
-      jouerPrononciation(data.bonneReponse);
+      setTimeout(() => {
+        getWord();                  // charger mot suivant
+        setReponse("");             // vider champ
+        setEtat("");
+        setCorrigerMode(false);
+        setStatMot(null);
+      }, 2000);
     } else {
       setEtat(`❌ Faux ! La bonne réponse était : ${data.bonneReponse}`);
-      setStatMot(data.stats);  // Affiche aussi stats même en KO
-      jouerPrononciation(data.bonneReponse);
       setCorrigerMode(true);
     }
-    setTimeout(() => {
-    getWord();             // charger le mot suivant automatiquement
-    setValidationEffectuee(false); // réinitialiser
-    setReponse("");        // si nécessaire, vider l'input
-  }, 2000); // 2 secondes pour afficher le score
+
     setLoading(false);
-    setBonneReponse(data.bonneReponse);
   }
 
-  // Ajouter un nouveau mot
   async function ajouterMot() {
     if (!newFr.trim() || !newRo.trim()) return alert("Remplis les deux champs");
     setLoading(true);
@@ -104,7 +89,6 @@ export default function App() {
     alert("Mot ajouté !");
   }
 
-  // Jouer la prononciation du mot
   async function jouerPrononciation(texte) {
     const res = await fetch(`${API}/api/tts`, {
       method: "POST",
@@ -123,8 +107,6 @@ export default function App() {
   useEffect(() => {
     getWord();
   }, []);
-
-
 
   return (
     <div className="min-h-screen bg-blue-50 p-4 flex flex-col items-center justify-start overflow-auto">
@@ -150,8 +132,8 @@ export default function App() {
         onClick={valider}
         disabled={corrigerMode || loading}
         className={`mt-3 font-semibold px-6 py-2 rounded transition 
-      ${loading ? "bg-gray-400" : "bg-green-500 hover:bg-green-600 w-full max-w-md"} 
-      text-white`}
+        ${loading ? "bg-gray-400" : "bg-green-500 hover:bg-green-600 w-full max-w-md"} 
+        text-white`}
       >
         {loading ? "..." : "Valider"}
       </button>
@@ -160,7 +142,7 @@ export default function App() {
 
       {statMot && (
         <div className="mt-4 text-sm text-gray-600">
-          <p>{statMot.reussites} / {statMot.tentatives} ( {statMot.pourcentage}% )</p>
+          <p>{statMot.reussites} / {statMot.tentatives} ({statMot.pourcentage}%)</p>
         </div>
       )}
 
@@ -170,8 +152,7 @@ export default function App() {
             onClick={() => {
               setCorrigerMode(false);
               setEtat("");
-              setStatMot(null); // ← tu veux réinitialiser les stats
-              // ⚠️ NE PAS vider setReponse ici
+              setStatMot(null);
             }}
             className="text-sm bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-1 rounded"
           >
@@ -181,15 +162,14 @@ export default function App() {
           <button
             onClick={() => {
               setShowAddForm(true);
-              setNewFr(mot);  // préremplit avec le mot en cours
-              setNewRo(bonneReponse); // ← préremplit avec la bonne réponse
+              setNewFr(mot);
+              setNewRo(bonneReponse);
             }}
             className="text-sm bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-1 rounded"
           >
             Corriger Dictionnaire
           </button>
         </div>
-
       )}
 
       <hr className="my-4 w-full max-w-md border-gray-300" />
@@ -221,7 +201,7 @@ export default function App() {
             onClick={ajouterMot}
             disabled={loading}
             className={`bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded transition 
-          ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {loading ? "Corr..." : "Corriger"}
           </button>
