@@ -79,6 +79,11 @@ export default function App() {
       jouerPrononciation(data.bonneReponse);
       setCorrigerMode(true);
     }
+    setTimeout(() => {
+    getWord();             // charger le mot suivant automatiquement
+    setValidationEffectuee(false); // réinitialiser
+    setReponse("");        // si nécessaire, vider l'input
+  }, 2000); // 2 secondes pour afficher le score
     setLoading(false);
     setBonneReponse(data.bonneReponse);
   }
@@ -188,13 +193,6 @@ export default function App() {
       )}
 
       <hr className="my-4 w-full max-w-md border-gray-300" />
-
-      <button
-        onClick={() => getWord()}
-        className="mb-3 bg-purple-500 hover:bg-purple-600 text-white font-semibold px-6 py-2 rounded w-full max-w-md"
-      >
-        Mot suivant
-      </button>
 
       <button
         onClick={() => setShowAddForm(!showAddForm)}
