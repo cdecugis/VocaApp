@@ -13,6 +13,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const [statMot, setStatMot] = useState(null);
+  const [onglet, setOnglet] = useState(null); // null au départ
 
   const API = process.env.REACT_APP_API || "http://localhost:3001";
 
@@ -23,8 +24,10 @@ export default function App() {
   };
 
   async function getWord() {
+    if (!onglet) return;
+
     setLoading(true);
-    const res = await fetch(`${API}/api/getWord`);
+    const res = await fetch(`${API}/api/getWord?onglet=${onglet}`);
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Backend error:", errorText);
@@ -44,7 +47,7 @@ export default function App() {
     if (index === null || loading) return;
     setLoading(true);
 
-    const res = await fetch(`${API}/api/sendAnswer`, {
+    const res = await fetch(`${API}/api/sendAnswer?onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index, reponse }),
@@ -105,8 +108,8 @@ export default function App() {
   }
 
   useEffect(() => {
-    getWord();
-  }, []);
+    if (onglet) getWord();
+  }, [onglet]);
 
   return (
     <div className="min-h-screen bg-blue-50 p-4 flex flex-col items-center justify-start overflow-auto">
@@ -114,29 +117,51 @@ export default function App() {
         Traduction Français → Roumain
       </h1>
 
-      <div className="text-xl sm:text-2xl mb-2">{mot}</div>
+      <div className="flex space-x-2 my-4">
+        <button
+          onClick={() => setOnglet("lexique")}
+          className={`px-4 py-2 rounded font-semibold ${onglet === "lexique" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+            }`}
+        >
+          Lexique
+        </button>
+        <button
+          onClick={() => setOnglet("verbes")}
+          className={`px-4 py-2 rounded font-semibold ${onglet === "verbes" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+            }`}
+        >
+          Verbes
+        </button>
+      </div>
 
-      <input
-        ref={inputRef}
-        tabIndex={0}
-        className="border rounded p-2 w-full max-w-md"
-        type="text"
-        value={reponse}
-        onChange={(e) => setReponse(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && valider()}
-        disabled={corrigerMode}
-        placeholder="Écris la traduction en roumain"
-      />
+      {!onglet ? (
+        <p className="mt-4 text-gray-700 text-lg">Choisissez un onglet pour commencer.</p>
+      ) : (
+        <>
+          <div className="text-xl sm:text-2xl mb-2">{mot}</div>
+          <input
+            ref={inputRef}
+            tabIndex={0}
+            className="border rounded p-2 w-full max-w-md"
+            type="text"
+            value={reponse}
+            onChange={(e) => setReponse(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && valider()}
+            disabled={corrigerMode}
+            placeholder="Écris la traduction en roumain"
+          />
 
-      <button
-        onClick={valider}
-        disabled={corrigerMode || loading}
-        className={`mt-3 font-semibold px-6 py-2 rounded transition 
+          <button
+            onClick={valider}
+            disabled={corrigerMode || loading}
+            className={`mt-3 font-semibold px-6 py-2 rounded transition 
         ${loading ? "bg-gray-400" : "bg-green-500 hover:bg-green-600 w-full max-w-md"} 
         text-white`}
-      >
-        {loading ? "..." : "Valider"}
-      </button>
+          >
+            {loading ? "..." : "Valider"}
+          </button>
+        </>
+      )}
 
       {etat && <p className="mt-2 text-xl">{etat}</p>}
 
@@ -206,6 +231,7 @@ export default function App() {
             {loading ? "Corr..." : "Corriger"}
           </button>
         </div>
+
       )}
     </div>
   );

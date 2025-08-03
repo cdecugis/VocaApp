@@ -14,6 +14,7 @@ import textToSpeech from "@google-cloud/text-to-speech";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { on } from "events";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -103,15 +104,6 @@ async function getSheets() {
     return google.sheets({ version: "v4", auth: client });
 }
 
-// Récupérer lexique complet (tous mots français + roumain)
-async function getLexique(sheets) {
-    const res = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: "lexique!A2:B",
-    });
-    return res.data.values || [];
-}
-
 // Récupérer historique (toutes réponses enregistrées)
 async function getHisto(sheets) {
     const res = await sheets.spreadsheets.values.get({
@@ -124,7 +116,7 @@ async function getHisto(sheets) {
 
 // Calcul pondération simple : plus un mot a d’erreurs KO, plus il a de poids
 function calculerPoids(index, tentatives, reussites) {
-    if (!tentatives) return 11; // Jamais demandé
+    if (!tentatives) return 15; // Jamais demandé
     const taux = reussites / tentatives;
     return 1 + Math.round((1 - taux) * 9); // Entre 1 (100% réussite) et 10 (0%)
 }
@@ -133,23 +125,28 @@ app.get("/api/test", (req, res) => {
     res.json({ message: "ok" });
 });
 
+
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...", credentialsPath);
     try {
         const sheets = await getSheets();
-        const lexique = await getLexique(sheets);
+        const onglet = req.query.onglet;
 
-        const resStats = await sheets.spreadsheets.values.get({
+        const resData = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
-            range: `lexique!C2:D${lexique.length + 1}`,
+            range: `${onglet}!A2:D`,
         });
-        const stats = resStats.data.values || [];
+
+        const source = resData.data.values || [];
+        if (source.length === 0) {
+            return res.status(400).json({ error: `Aucun mot trouvé dans l'onglet ${onglet}` });
+        }
 
         // Construire tableau avec poids
-        const data = lexique.map(([fr, ro], i) => {
-            const statLine = stats[i] || [];
-            const tentatives = parseInt(statLine[0]) || 0;
-            const reussites = parseInt(statLine[1]) || 0;
+        const data = source.map(([fr, ro], i) => {
+            const statLine = source[i] || [];
+            const tentatives = parseInt(statLine[2]) || 0;
+            const reussites = parseInt(statLine[3]) || 0;
             return {
                 index: i,
                 motFr: fr,
@@ -175,13 +172,19 @@ app.get("/api/getWord", async (req, res) => {
 app.post("/api/sendAnswer", async (req, res) => {
     try {
         const { index, reponse } = req.body;
+        const onglet = req.query.onglet;
+        console.log(`Demande de réponse pour l'onglet ${onglet}, index ${index}`);
+
         const sheets = await getSheets();
-        const lexique = await getLexique(sheets);
+        const source = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `${onglet}!A2:D`,
+        });
 
-        if (!lexique[index]) return res.status(400).send("Index invalide");
+        const liste = source.data.values || [];
 
-        const motFr = lexique[index][0];
-        const bonneReponse = lexique[index][1];
+        const motFr = liste[index][0];
+        const bonneReponse = liste[index][1];
         const isCorrect = nettoyerRoumain(reponse.trim().toLowerCase()) === nettoyerRoumain(bonneReponse.trim().toLowerCase());
         const resultat = isCorrect ? "OK" : "KO";
 
@@ -198,13 +201,13 @@ app.post("/api/sendAnswer", async (req, res) => {
 
         const countRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
-            range: `lexique!C${ligne}:D${ligne}`,
+            range: `${onglet}!C${ligne}:D${ligne}`,
         });
 
         let tentatives = parseInt(countRes.data.values?.[0]?.[0] || "0");
-        console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
+        console.log(`Tentatives pour le mot avant MAJ ${motFr} : ${tentatives}`);
         let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
-        console.log(`Réussites pour le mot ${motFr} : ${reussites}`);
+        console.log(`Réussites pour le mot avant MAJ ${motFr} : ${reussites}`);
 
         tentatives += 1;
         console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
@@ -213,7 +216,7 @@ app.post("/api/sendAnswer", async (req, res) => {
 
         await sheets.spreadsheets.values.update({
             spreadsheetId: SHEET_ID,
-            range: `lexique!C${ligne}:D${ligne}`,
+            range: `${onglet}!C${ligne}:D${ligne}`,
             valueInputOption: "RAW",
             requestBody: {
                 values: [[tentatives, reussites]],
