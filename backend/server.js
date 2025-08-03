@@ -121,11 +121,6 @@ function calculerPoids(index, tentatives, reussites) {
     return 1 + Math.round((1 - taux) * 9); // Entre 1 (100% réussite) et 10 (0%)
 }
 
-app.get("/api/test", (req, res) => {
-    res.json({ message: "ok" });
-});
-
-
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...", credentialsPath);
     try {
@@ -245,6 +240,7 @@ app.post("/api/sendAnswer", async (req, res) => {
 app.post("/api/addWord", async (req, res) => {
     try {
         const { motFr, motRo } = req.body;
+        const onglet = req.query.onglet;
         if (!motFr || !motRo) return res.status(400).send("Mot(s) manquant(s)");
 
         const sheets = await getSheets();
@@ -252,27 +248,27 @@ app.post("/api/addWord", async (req, res) => {
         // 1. Récupérer lexique entier
         const lexRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
-            range: "lexique!A2:B",
+            range: `${onglet}!A2:D`,
         });
-        const lexique = lexRes.data.values || [];
+        const liste = lexRes.data.values || [];
 
         // 2. Filtrer pour enlever l'entrée avec motFr == motFr envoyé
-        const nouveauLexique = lexique.filter(([fr]) => fr !== motFr);
+        const nouvelleListe = liste.filter(([fr]) => fr !== motFr);
 
         // 3. Ecraser la feuille avec le lexique filtré
         await sheets.spreadsheets.values.update({
             spreadsheetId: SHEET_ID,
-            range: "lexique!A2:B",
+            range: `${onglet}!A2:D`,
             valueInputOption: "RAW",
             requestBody: {
-                values: nouveauLexique,
+                values: nouvelleListe,
             },
         });
 
         // 4. Ajouter la nouvelle paire corrigée en fin de lexique
         await sheets.spreadsheets.values.append({
             spreadsheetId: SHEET_ID,
-            range: "lexique!A:B",
+            range: `${onglet}!A:D`,
             valueInputOption: "RAW",
             requestBody: {
                 values: [[motFr, motRo]],
