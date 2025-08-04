@@ -40,4 +40,4 @@ jobs:
             --region europe-west1 \
             --platform managed \
             --allow-unauthenticated \
-            --port 8080
+            --timeout=360s
