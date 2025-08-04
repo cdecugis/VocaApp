@@ -50,7 +50,7 @@ export default function App() {
     const res = await fetch(`${API}/api/sendAnswer?onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index, reponse }),
+      body: JSON.stringify({ index, reponse, correction: corrigerMode }),
     });
 
     const data = await res.json();
