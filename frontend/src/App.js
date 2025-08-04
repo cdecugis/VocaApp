@@ -20,10 +20,11 @@ export default function App() {
 
   const playSound = (type) => {
     const audio = new Audio(type === "OK" ? "success.mp3" : "failure.mp3");
-    audio.volume = type === "OK" ? 0.5 : 0.5;
+    audio.volume = type === "OK" ? 0.3 : 0.5;
     audio.play();
   };
 
+  ///////////////// Fonction pour récupérer un mot aléatoire selon les stats de l'utilisateur //////////////
   async function getWord() {
     if (!onglet) return;
 
@@ -45,6 +46,7 @@ export default function App() {
     setLoading(false);
   }
 
+  ////////////// Fonction pour vérifier la réponse ////////////////
   async function valider() {
     if (index === null || loading) return;
     setLoading(true);
@@ -83,21 +85,8 @@ export default function App() {
     setLoading(false);
   }
 
-  async function ajouterMot() {
-    if (!newFr.trim() || !newRo.trim()) return alert("Remplis les deux champs");
-    setLoading(true);
-    await fetch(`${API}/api/addWord?onglet=${onglet}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ motFr: newFr.trim(), motRo: newRo.trim() }),
-    });
-    setLoading(false);
-    setNewFr("");
-    setNewRo("");
-    setShowAddForm(false);
-    alert("Mot ajouté !");
-  }
 
+  /////////////// Fonction pour prononcer le mot ///////////////
   async function jouerPrononciation(texte) {
     const res = await fetch(`${API}/api/tts`, {
       method: "POST",
@@ -111,6 +100,40 @@ export default function App() {
     const audioUrl = URL.createObjectURL(blob);
     const audio = new Audio(audioUrl);
     audio.play();
+  }
+
+  /////////////// Fonction pour traduire le mot en français vers le roumain ////////////////
+  async function traduireMot() {
+    if (!newFr.trim()) return;
+
+    try {
+      const res = await fetch(`${API}/api/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte: newFr }),
+      });
+      const data = await res.json();
+      setNewRo(data.traduction.toLowerCase() || "");
+
+    } catch (err) {
+      alert("Erreur de traduction automatique.");
+      console.error(err);
+    }
+  }
+
+  ////////////////// Fonction pour ajouter un mot au dictionnaire /////////////////
+  async function ajouterMot() {
+    if (!newFr.trim() || !newRo.trim()) return alert("Remplis les deux champs");
+    setLoading(true);
+    await fetch(`${API}/api/addWord?onglet=${onglet}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motFr: newFr.trim(), motRo: newRo.trim() }),
+    });
+    setLoading(false);
+    setNewFr("");
+    setNewRo("");
+    setShowAddForm(false);
   }
 
   useEffect(() => {
@@ -138,6 +161,21 @@ export default function App() {
         >
           Verbes
         </button>
+        <button
+          onClick={() => setOnglet("démonstratifs")}
+          className={`px-4 py-2 rounded font-semibold ${onglet === "démonstratifs" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+            }`}
+        >
+          Démonstratifs
+        </button>
+        <button
+          onClick={() => setOnglet("possessifs")}
+          className={`px-4 py-2 rounded font-semibold ${onglet === "possessifs" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+            }`}
+        >
+          Possessifs
+        </button>
+
       </div>
 
       {!onglet ? (
@@ -207,6 +245,7 @@ export default function App() {
 
       <button
         onClick={() => setShowAddForm(!showAddForm)}
+        hidden={onglet == null}
         className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded w-full max-w-md"
       >
         {showAddForm ? "Annuler correction" : "Ajouter un mot"}
@@ -214,13 +253,21 @@ export default function App() {
 
       {showAddForm && (
         <div className="mt-4 w-full max-w-md flex flex-col space-y-3">
-          <input
-            type="text"
-            placeholder="Mot en français"
-            value={newFr}
-            onChange={(e) => setNewFr(e.target.value)}
-            className="border rounded p-2"
-          />
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              placeholder="Mot en français"
+              value={newFr}
+              onChange={(e) => setNewFr(e.target.value)}
+              className="border rounded p-2 flex-grow"
+            />
+            <button
+              onClick={traduireMot}
+              className="bg-gray-300 hover:bg-gray-400 text-sm px-2 py-1 rounded"
+            >
+              Traduire
+            </button>
+          </div>
           <input
             type="text"
             placeholder="Traduction en roumain"

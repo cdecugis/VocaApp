@@ -236,70 +236,75 @@ app.post("/api/sendAnswer", async (req, res) => {
     }
 });
 
+/////////////// Traduction proposée avant ajout //////////////////////
+app.post("/api/translate", async (req, res) => {
+    const { texte } = req.body;
 
-// ✅ Déplacés ici :
-app.post("/api/addWord", async (req, res) => {
+    if (!texte) return res.status(400).json({ error: "Texte manquant" });
+
     try {
-        const { motFr, motRo } = req.body;
-        const onglet = req.query.onglet;
-        if (!motFr || !motRo) return res.status(400).send("Mot(s) manquant(s)");
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=fr&tl=ro&dt=t&q=${encodeURIComponent(texte)}`;
+        const response = await fetch(url);
+        const data = await response.json();
 
+        const traduction = data[0]?.[0]?.[0] || "";
+        res.json({ traduction });
+    } catch (err) {
+        console.error("Erreur traduction :", err);
+        res.status(500).json({ error: "Erreur de traduction" });
+    }
+});
+
+/////////////// Ajouter ou mettre à jour un mot dans le dictionnaire ////////////////
+app.post("/api/addWord", async (req, res) => {
+    const { motFr, motRo } = req.body;
+    const onglet = req.query.onglet;
+    if (!motFr || !motRo) return res.status(400).send("Champs manquants");
+
+    try {
         const sheets = await getSheets();
-
-        // 1. Récupérer lexique entier
-        const lexRes = await sheets.spreadsheets.values.get({
+        const source_xls = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
-            range: `${onglet}!A2:D`,
-        });
-        const liste = lexRes.data.values || [];
-
-        // 2. Filtrer pour enlever l'entrée avec motFr == motFr envoyé
-        const nouvelleListe = liste.filter(([fr]) => fr !== motFr);
-
-        // 3. Ecraser la feuille avec le lexique filtré
-        await sheets.spreadsheets.values.update({
-            spreadsheetId: SHEET_ID,
-            range: `${onglet}!A2:D`,
-            valueInputOption: "RAW",
-            requestBody: {
-                values: nouvelleListe,
-            },
+            range: `${onglet}!A2:B`,
         });
 
-        // 4. Ajouter la nouvelle paire corrigée en fin de lexique
-        await sheets.spreadsheets.values.append({
-            spreadsheetId: SHEET_ID,
-            range: `${onglet}!A:D`,
-            valueInputOption: "RAW",
-            requestBody: {
-                values: [[motFr, motRo]],
-            },
-        });
+        // transformer les données en tableau
+        const source = source_xls.data.values || [];
 
-        res.sendStatus(201);
+        // Chercher l'index du mot français existant (col A)
+        const index = source.findIndex((row) => row[0]?.trim().toLowerCase() === motFr.trim().toLowerCase());
+
+        if (index !== -1) {
+            // Mise à jour de la traduction
+            console.log(`Mot trouvé à l'index ${index}, mise à jour de la traduction...`);
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: SHEET_ID,
+                range: `${onglet}!B${index + 2}`,
+                valueInputOption: "RAW",
+                requestBody: {
+                    values: [[motRo]],
+                },
+            });
+            res.json({ message: "Mot mis à jour", index });
+        } else {
+            // Ajout d'un nouveau mot
+            console.log(`Mot non trouvé, ajout à la fin...`);
+            await sheets.spreadsheets.values.append({
+                spreadsheetId: SHEET_ID,
+                range: `${onglet}!A:D`, // on prépare aussi les colonnes C et D
+                valueInputOption: "RAW",
+                requestBody: {
+                    values: [[motFr, motRo, "", ""]], // C et D vides au départ
+                },
+            });
+            res.json({ message: "Mot ajouté" });
+        }
     } catch (err) {
         console.error(err);
         res.status(500).send("Erreur serveur");
     }
 });
 
-app.get("/api/getStats", async (req, res) => {
-    try {
-        const sheets = await getSheets();
-        const histo = await getHisto(sheets);
-        const last100 = histo.slice(-100);
-        const bonnes = last100.filter(row => (row[3] || "").trim().toUpperCase() === "OK").length;
-
-        res.json({
-            bonnes,
-            total: last100.length,
-        });
-
-    } catch (err) {
-        console.error("Erreur /api/getStats:", err);
-        res.status(500).json({ error: "Erreur serveur lors de la récupération des stats." });
-    }
-});
 
 // ✅ Enfin, on démarre le serveur
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
