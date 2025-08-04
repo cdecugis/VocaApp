@@ -40,4 +40,5 @@ jobs:
             --region europe-west1 \
             --platform managed \
             --allow-unauthenticated \
-            --timeout=360s
+            --timeout=360s \
+            --update-secrets /secrets/credentials.json=credentials-json:latest
