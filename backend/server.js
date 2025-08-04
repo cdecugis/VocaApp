@@ -50,7 +50,7 @@ const ttsclient = new textToSpeech.TextToSpeechClient({
 
 const app = express();
 
-// démarrage du serveur par défaut sur 8080 online ou port 3001 en local
+// démarrage du serveur par défaut sur 8080 de gcloud ou port 3001 en local
 const PORT = process.env.PORT || 3001;
 
 function nettoyerRoumain(texte) {

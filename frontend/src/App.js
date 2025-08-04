@@ -19,7 +19,7 @@ export default function App() {
 
   const playSound = (type) => {
     const audio = new Audio(type === "OK" ? "success.mp3" : "failure.mp3");
-    audio.volume = type === "OK" ? 0.2 : 0.5;
+    audio.volume = type === "OK" ? 0.5 : 0.5;
     audio.play();
   };
 
