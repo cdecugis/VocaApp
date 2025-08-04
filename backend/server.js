@@ -208,34 +208,29 @@ app.post("/api/sendAnswer", async (req, res) => {
             tentatives += 1;
             console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
             if (isCorrect) reussites += 1;
-            console.log(`Réussites pour le mot ${motFr} : ${reussites}`);
         }
 
-        await sheets.spreadsheets.values.update({
-            spreadsheetId: SHEET_ID,
-            range: `${onglet}!C${ligne}:D${ligne}`,
-            valueInputOption: "RAW",
-            requestBody: {
-                values: [[tentatives, reussites]],
+        requestBody: {
+            values: [[tentatives, reussites]],
             },
-        });
+    });
 
-        const pourcentage = tentatives > 0 ? Math.round((reussites / tentatives) * 100) : 0;
+const pourcentage = tentatives > 0 ? Math.round((reussites / tentatives) * 100) : 0;
 
-        res.json({
-            resultat,
-            bonneReponse,
-            stats: {
-                tentatives,
-                reussites,
-                pourcentage,
-            }
-        });
+res.json({
+    resultat,
+    bonneReponse,
+    stats: {
+        tentatives,
+        reussites,
+        pourcentage,
+    }
+});
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Erreur serveur");
-    }
+    console.error(err);
+    res.status(500).send("Erreur serveur");
+}
 });
 
 // ✅ Déplacés ici :

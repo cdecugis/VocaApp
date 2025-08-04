@@ -23,25 +23,15 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: integral-linker-435615-v7
-          install_components: 'beta'  # Pour gcloud run
-
-      - name: Configure Docker for gcloud
-        run: |
-          gcloud auth configure-docker
 
       - name: Build Docker image
         run: |
-          docker build -t gcr.io/integral-linker-435615-v7/backend .
+          docker builds -t gcr.io/integral-linker-435615-v7/backend .
 
       - name: Push Docker image
         run: |
-          docker push gcr.io/integral-linker-435615-v7/backend
+          gcloud auth configure-docker
+          doscker push gcr.io/integral-linker-435615-v7/backend
 
       - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy backend \
-            --image gcr.io/integral-linker-435615-v7/backend \
-            --region europe-west1 \
-            --platform managed \
-            --allow-unauthenticated \
-            --port 8080
+        run: gcloud run deploy backend --image gcr.io/integral-linker-435615-v7/backend --region europe-west1 --platform managed --allow-unauthenticated --update-secrets /secrets/credentials.json=credentials-json:latest
