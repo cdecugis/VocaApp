@@ -201,7 +201,9 @@ app.post("/api/sendAnswer", async (req, res) => {
         let tentatives = parseInt(countRes.data.values?.[0]?.[0] || "0");
         let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
 
-        if (!correction) {
+        console.log(`Première tentative: ${correction}`);
+        if (correction) {
+            console.log("C'est une première tentative");
             tentatives += 1;
             if (isCorrect) reussites += 1;
 

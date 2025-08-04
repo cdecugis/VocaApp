@@ -10,6 +10,7 @@ export default function App() {
   const [newRo, setNewRo] = useState("");
   const [bonneReponse, setBonneReponse] = useState("");
   const [corrigerMode, setCorrigerMode] = useState(false);
+  const [premier, setPremier] = useState(true);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const [statMot, setStatMot] = useState(null);
@@ -39,6 +40,7 @@ export default function App() {
     setReponse("");
     setEtat("");
     setCorrigerMode(false);
+    setPremier(true);
     inputRef.current?.focus();
     setLoading(false);
   }
@@ -46,11 +48,12 @@ export default function App() {
   async function valider() {
     if (index === null || loading) return;
     setLoading(true);
+    console.log(`Première tentative: ${premier}`);
 
     const res = await fetch(`${API}/api/sendAnswer?onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index, reponse, correction: corrigerMode }),
+      body: JSON.stringify({ index, reponse, correction: premier }),
     });
 
     const data = await res.json();
@@ -67,12 +70,15 @@ export default function App() {
         setReponse("");             // vider champ
         setEtat("");
         setCorrigerMode(false);
+        setPremier(false);
         setStatMot(null);
       }, 2000);
     } else {
       setEtat(`❌ Faux ! La bonne réponse était : ${data.bonneReponse}`);
       setCorrigerMode(true);
+      setPremier(false);
     }
+    console.log(`Premier mot: ${premier}`);
 
     setLoading(false);
   }
