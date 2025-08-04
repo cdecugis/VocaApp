@@ -50,7 +50,7 @@ export default function App() {
     const res = await fetch(`${API}/api/sendAnswer?onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index, reponse }),
+      body: JSON.stringify({ index, reponse, correction: corrigerMode }),
     });
 
     const data = await res.json();
@@ -80,7 +80,7 @@ export default function App() {
   async function ajouterMot() {
     if (!newFr.trim() || !newRo.trim()) return alert("Remplis les deux champs");
     setLoading(true);
-    await fetch(`${API}/api/addWord`, {
+    await fetch(`${API}/api/addWord?onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ motFr: newFr.trim(), motRo: newRo.trim() }),
