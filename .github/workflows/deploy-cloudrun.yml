@@ -31,7 +31,7 @@ jobs:
 
       - name: Build and push with Cloud Build
         run: |
-          gcloud builds submit --tag gcr.io/integral-linker-435615-v7/backend
+          gcloud builds submit ./backend --tag gcr.io/integral-linker-435615-v7/backend
 
       - name: Deploy to Cloud Run
         run: |
