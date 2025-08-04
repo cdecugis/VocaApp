@@ -199,16 +199,12 @@ app.post("/api/sendAnswer", async (req, res) => {
         });
 
         let tentatives = parseInt(countRes.data.values?.[0]?.[0] || "0");
-        console.log(`Tentatives pour le mot avant MAJ ${motFr} : ${tentatives}`);
         let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
-        console.log(`Réussites pour le mot avant MAJ ${motFr} : ${reussites}`);
 
-        // ✅ Mise à jour des tentatives et réussites uniquement si réussite
         if (!correction) {
             tentatives += 1;
-            console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
             if (isCorrect) reussites += 1;
-            // ✅ Mise à jour des tentatives et réussites dans le lexique
+
             await sheets.spreadsheets.values.update({
                 spreadsheetId: SHEET_ID,
                 range: `${onglet}!C${ligne}:D${ligne}`,
@@ -219,30 +215,25 @@ app.post("/api/sendAnswer", async (req, res) => {
             });
         }
 
-        res.json({ isCorrect });
+        const pourcentage = tentatives > 0 ? Math.round((reussites / tentatives) * 100) : 0;
+
+        res.json({
+            resultat,
+            bonneReponse,
+            stats: {
+                tentatives,
+                reussites,
+                pourcentage,
+            },
+            isCorrect,
+        });
+
     } catch (error) {
         console.error("Erreur dans /api/sendAnswer:", error);
         res.status(500).json({ error: "Erreur serveur" });
     }
 });
 
-const pourcentage = tentatives > 0 ? Math.round((reussites / tentatives) * 100) : 0;
-
-res.json({
-    resultat,
-    bonneReponse,
-    stats: {
-        tentatives,
-        reussites,
-        pourcentage,
-    }
-});
-
-    } catch (err) {
-    console.error(err);
-    res.status(500).send("Erreur serveur");
-}
-});
 
 // ✅ Déplacés ici :
 app.post("/api/addWord", async (req, res) => {
