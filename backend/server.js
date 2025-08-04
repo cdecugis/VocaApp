@@ -177,7 +177,6 @@ app.post("/api/sendAnswer", async (req, res) => {
         });
 
         const liste = source.data.values || [];
-
         const motFr = liste[index][0];
         const bonneReponse = liste[index][1];
         const isCorrect = nettoyerRoumain(reponse.trim().toLowerCase()) === nettoyerRoumain(bonneReponse.trim().toLowerCase());
@@ -204,16 +203,28 @@ app.post("/api/sendAnswer", async (req, res) => {
         let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
         console.log(`Réussites pour le mot avant MAJ ${motFr} : ${reussites}`);
 
+        // ✅ Mise à jour des tentatives et réussites uniquement si réussite
         if (!correction) {
             tentatives += 1;
             console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
             if (isCorrect) reussites += 1;
+            // ✅ Mise à jour des tentatives et réussites dans le lexique
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: SHEET_ID,
+                range: `${onglet}!C${ligne}:D${ligne}`,
+                valueInputOption: "RAW",
+                requestBody: {
+                    values: [[tentatives, reussites]],
+                },
+            });
         }
 
-        requestBody: {
-            values: [[tentatives, reussites]],
-            },
-    });
+        res.json({ isCorrect });
+    } catch (error) {
+        console.error("Erreur dans /api/sendAnswer:", error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+});
 
 const pourcentage = tentatives > 0 ? Math.round((reussites / tentatives) * 100) : 0;
 
