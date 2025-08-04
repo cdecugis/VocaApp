@@ -166,7 +166,7 @@ app.get("/api/getWord", async (req, res) => {
 
 app.post("/api/sendAnswer", async (req, res) => {
     try {
-        const { index, reponse } = req.body;
+        const { index, reponse , correction} = req.body;
         const onglet = req.query.onglet;
         console.log(`Demande de réponse pour l'onglet ${onglet}, index ${index}`);
 
@@ -204,11 +204,13 @@ app.post("/api/sendAnswer", async (req, res) => {
         let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
         console.log(`Réussites pour le mot avant MAJ ${motFr} : ${reussites}`);
 
+        if (!correction) {
         tentatives += 1;
         console.log(`Tentatives pour le mot ${motFr} : ${tentatives}`);
         if (isCorrect) reussites += 1;
         console.log(`Réussites pour le mot ${motFr} : ${reussites}`);
-
+        }
+        
         await sheets.spreadsheets.values.update({
             spreadsheetId: SHEET_ID,
             range: `${onglet}!C${ligne}:D${ligne}`,
