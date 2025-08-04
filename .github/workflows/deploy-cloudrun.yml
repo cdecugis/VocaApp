@@ -26,7 +26,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker builds submit -t gcr.io/integral-linker-435615-v7/backend .
+          docker builds -t gcr.io/integral-linker-435615-v7/backend .
 
       - name: Push Docker image
         run: |
