@@ -26,12 +26,12 @@ jobs:
 
       - name: Build Docker image
         run: |
-          gcloud builds submit gcr.io/integral-linker-435615-v7/backend .
+          docker builds submit -t gcr.io/integral-linker-435615-v7/backend .
 
       - name: Push Docker image
         run: |
           gcloud auth configure-docker
-          push gcr.io/integral-linker-435615-v7/backend
+          doscker push gcr.io/integral-linker-435615-v7/backend
 
       - name: Deploy to Cloud Run
         run: gcloud run deploy backend --image gcr.io/integral-linker-435615-v7/backend --region europe-west1 --platform managed --allow-unauthenticated --update-secrets /secrets/credentials.json=credentials-json:latest
