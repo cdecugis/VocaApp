@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function App() {
   const [mot, setMot] = useState("");
@@ -17,6 +18,7 @@ export default function App() {
   const [onglet, setOnglet] = useState(null); // null au départ
 
   const API = process.env.REACT_APP_API || "http://localhost:3001";
+  const navigate = useNavigate();
 
   const playSound = (type) => {
     const audio = new Audio(type === "OK" ? "success.mp3" : "failure.mp3");
@@ -24,12 +26,13 @@ export default function App() {
     audio.play();
   };
 
+
   ///////////////// Fonction pour récupérer un mot aléatoire selon les stats de l'utilisateur //////////////
   async function getWord() {
     if (!onglet) return;
-
     setLoading(true);
-    const res = await fetch(`${API}/api/getWord?onglet=${onglet}`);
+    const sheetId = localStorage.getItem("sheetId");
+    const res = await fetch(`${API}/api/getWord?sheetId=${sheetId}&onglet=${onglet}`);
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Backend error:", errorText);
@@ -46,13 +49,14 @@ export default function App() {
     setLoading(false);
   }
 
+
   ////////////// Fonction pour vérifier la réponse ////////////////
   async function valider() {
     if (index === null || loading) return;
     setLoading(true);
     console.log(`Première tentative: ${premier}`);
-
-    const res = await fetch(`${API}/api/sendAnswer?onglet=${onglet}`, {
+    const sheetId = localStorage.getItem("sheetId");
+    const res = await fetch(`${API}/api/sendAnswer?sheetId=${sheetId}&onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ index, reponse, correction: premier }),
@@ -102,6 +106,7 @@ export default function App() {
     audio.play();
   }
 
+
   /////////////// Fonction pour traduire le mot en français vers le roumain ////////////////
   async function traduireMot() {
     if (!newFr.trim()) return;
@@ -121,11 +126,13 @@ export default function App() {
     }
   }
 
+
   ////////////////// Fonction pour ajouter un mot au dictionnaire /////////////////
   async function ajouterMot() {
     if (!newFr.trim() || !newRo.trim()) return alert("Remplis les deux champs");
     setLoading(true);
-    await fetch(`${API}/api/addWord?onglet=${onglet}`, {
+    const sheetId = localStorage.getItem("sheetId");
+    await fetch(`${API}/api/addWord?sheetId=${sheetId}&onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ motFr: newFr.trim(), motRo: newRo.trim() }),
@@ -140,42 +147,63 @@ export default function App() {
     if (onglet) getWord();
   }, [onglet]);
 
+  function handleDeconnexion() {
+    localStorage.removeItem("sheetId");
+    localStorage.removeItem("identifiant");
+    navigate("/");
+  }
+
   return (
     <div className="min-h-screen bg-blue-50 p-4 flex flex-col items-center justify-start overflow-auto">
       <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center">
-        Traduction Français → Roumain
+        User <span className="text-blue-600">{localStorage.getItem("identifiant")}</span>
+        <br />
+        Français → Roumain
       </h1>
+      <button
+        onClick={handleDeconnexion}
+        className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded"
+      >
+        Déconnexion
+      </button>
 
-      <div className="flex space-x-2 my-4">
+      <div className="flex flex-wrap gap-2 my-4 max-w-md">
         <button
           onClick={() => setOnglet("lexique")}
-          className={`px-4 py-2 rounded font-semibold ${onglet === "lexique" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+          className={`px-4 py-2 rounded font-semibold ${onglet === "lexique"
+            ? "bg-blue-600 text-white"
+            : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
           Lexique
         </button>
         <button
           onClick={() => setOnglet("verbes")}
-          className={`px-4 py-2 rounded font-semibold ${onglet === "verbes" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+          className={`px-4 py-2 rounded font-semibold ${onglet === "verbes"
+            ? "bg-blue-600 text-white"
+            : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
           Verbes
         </button>
         <button
           onClick={() => setOnglet("démonstratifs")}
-          className={`px-4 py-2 rounded font-semibold ${onglet === "démonstratifs" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+          className={`px-4 py-2 rounded font-semibold ${onglet === "démonstratifs"
+            ? "bg-blue-600 text-white"
+            : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
           Démonstratifs
         </button>
         <button
           onClick={() => setOnglet("possessifs")}
-          className={`px-4 py-2 rounded font-semibold ${onglet === "possessifs" ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-600"
+          className={`px-4 py-2 rounded font-semibold ${onglet === "possessifs"
+            ? "bg-blue-600 text-white"
+            : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
           Possessifs
         </button>
-
       </div>
 
       {!onglet ? (
@@ -284,7 +312,6 @@ export default function App() {
             {loading ? "Corr..." : "Corriger"}
           </button>
         </div>
-
       )}
     </div>
   );

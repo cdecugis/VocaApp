@@ -8,6 +8,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "backend", // nom exact du service Cloud Run
+          "region": "europe-west1" // région du service Cloud Run
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

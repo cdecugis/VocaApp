@@ -14,10 +14,10 @@ import textToSpeech from "@google-cloud/text-to-speech";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { on } from "events";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const UTILISATEURS_ID = "1gDx3H4gbynYgLSTRTpKklzxaeEu0h05dVJz7wLB3LeA"; // ID de la feuille des utilisateurs
 
 let credentialsPath;
 
@@ -50,29 +50,42 @@ const ttsclient = new textToSpeech.TextToSpeechClient({
 
 const app = express();
 
+app.use(cors());
+app.use(express.json());
+
 // démarrage du serveur par défaut sur 8080 de gcloud ou port 3001 en local
 const PORT = process.env.PORT || 3001;
 
-function nettoyerRoumain(texte) {
-    return texte
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "") // enlève les accents visuels
-        .replace(/[șş]/gi, "s")
-        .replace(/[țţ]/gi, "t")
-        .replace(/ă/gi, "a")
-        .replace(/[âî]/gi, "i")
-        .toLowerCase()
-        .trim();
-}
+////////////////// Gestion de la connexion //////////////////
+app.get("/api/login", async (req, res) => {
+    const identifiant = req.query.identifiant?.trim();
+    if (!identifiant) return res.status(400).send("Identifiant manquant");
+    console.log(`Connexion demandée pour l'identifiant: ${identifiant}`);
+
+    try {
+        const sheets = await getSheets();
+        const data = await sheets.spreadsheets.values.get({
+            spreadsheetId: UTILISATEURS_ID,
+            range: "utilisateurs!A2:B",
+        });
+
+        const ligne = data.data.values.find(row => row[0] === identifiant);
+        if (!ligne) return res.status(404).send("Utilisateur non trouvé");
+
+        const sheetId = ligne[1];
+        res.json({ sheetId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Erreur serveur");
+    }
+});
 
 app.get("/", (req, res) => {
     res.send("Hello from backend!");
 });
 
-app.use(cors());
-app.use(express.json());
 
-// Endpoint pour générer le son TTS du texte reçu
+/////////////// Générer le son à partir du texte reçu ///////////////////
 app.post("/api/tts", async (req, res) => {
     try {
         const { text } = req.body;
@@ -96,7 +109,8 @@ app.post("/api/tts", async (req, res) => {
     }
 });
 
-// Ton ID Google Sheet
+
+////////////// Ton ID Google Sheet ////////////////////
 const SHEET_ID = "1Yto3-0IxVwYqL4dgNl4E7yCnG8ZWxPxn2HrYBeARc30";
 
 async function getSheets() {
@@ -104,29 +118,22 @@ async function getSheets() {
     return google.sheets({ version: "v4", auth: client });
 }
 
-// Récupérer historique (toutes réponses enregistrées)
-async function getHisto(sheets) {
-    const res = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: "histo!A2:D",
-    });
-    return res.data.values || [];
-}
 
-
-// Calcul pondération simple : plus un mot a d’erreurs KO, plus il a de poids
+////////////// Calcul pondération : plus un mot a d’erreurs KO, plus il a de poids //////////////
 function calculerPoids(index, tentatives, reussites) {
     if (!tentatives) return 15; // Jamais demandé
     const taux = reussites / tentatives;
     return 1 + Math.round((1 - taux) * 9); // Entre 1 (100% réussite) et 10 (0%)
 }
 
+
+///////////////// Tirer un mot aléatoire en fonction de son poids ////////////////
 app.get("/api/getWord", async (req, res) => {
     console.log("Tirage d'un mot...", credentialsPath);
     try {
-        const sheets = await getSheets();
+        const SHEET_ID = req.query.sheetId;
         const onglet = req.query.onglet;
-
+        const sheets = await getSheets();
         const resData = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
             range: `${onglet}!A2:D`,
@@ -164,10 +171,13 @@ app.get("/api/getWord", async (req, res) => {
 });
 
 
+////////////// Envoi de la réponse et du résultat ////////////////
 app.post("/api/sendAnswer", async (req, res) => {
     try {
         const { index, reponse, correction } = req.body;
         const onglet = req.query.onglet;
+        const SHEET_ID = req.query.sheetId;
+
         console.log(`Demande de réponse pour l'onglet ${onglet}, index ${index}`);
 
         const sheets = await getSheets();
@@ -236,6 +246,7 @@ app.post("/api/sendAnswer", async (req, res) => {
     }
 });
 
+
 /////////////// Traduction proposée avant ajout //////////////////////
 app.post("/api/translate", async (req, res) => {
     const { texte } = req.body;
@@ -255,10 +266,12 @@ app.post("/api/translate", async (req, res) => {
     }
 });
 
+
 /////////////// Ajouter ou mettre à jour un mot dans le dictionnaire ////////////////
 app.post("/api/addWord", async (req, res) => {
     const { motFr, motRo } = req.body;
     const onglet = req.query.onglet;
+    const SHEET_ID = req.query.sheetId;
     if (!motFr || !motRo) return res.status(400).send("Champs manquants");
 
     try {
@@ -306,5 +319,19 @@ app.post("/api/addWord", async (req, res) => {
 });
 
 
-// ✅ Enfin, on démarre le serveur
+////////////////// Retirer les accents pour comparer les mots ////////////////
+function nettoyerRoumain(texte) {
+    return texte
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "") // enlève les accents visuels
+        .replace(/[șş]/gi, "s")
+        .replace(/[țţ]/gi, "t")
+        .replace(/ă/gi, "a")
+        .replace(/[âî]/gi, "i")
+        .toLowerCase()
+        .trim();
+}
+
+
+/////////////// Démarrer le serveur ////////////////
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
