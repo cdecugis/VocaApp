@@ -1,0 +1,67 @@
+name: Deploy Backend and Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Authentification Google Cloud
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    # Setup Google Cloud SDK (avec beta pour Cloud Run)
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: integral-linker-435615-v7
+        install_components: 'beta'
+
+    # Configurer Docker pour Google Cloud
+    - name: Configure Docker for gcloud
+      run: |
+        gcloud auth configure-docker
+
+    # Construire et pousser l'image backend
+    - name: Build and push backend image with Cloud Build
+      run: |
+        gcloud builds submit ./backend --tag gcr.io/integral-linker-435615-v7/backend
+
+    # Déployer sur Cloud Run
+    - name: Deploy backend to Cloud Run
+      run: |
+        gcloud run deploy backend \
+          --image gcr.io/integral-linker-435615-v7/backend \
+          --region europe-west1 \
+          --platform managed \
+          --allow-unauthenticated \
+          --timeout=360s \
+          --update-secrets /secrets/credentials.json=credentials-json:latest
+
+    # Installer les dépendances frontend
+    - name: Install frontend dependencies
+      run: npm install
+      working-directory: ./frontend
+
+    # Builder l'application React frontend
+    - name: Build React frontend
+      run: npm run build
+      working-directory: ./frontend
+
+    # Déployer sur Firebase Hosting
+    - name: Deploy to Firebase Hosting
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: ${{ secrets.GITHUB_TOKEN }}
+        firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VOCAAPP_A1873 }}
+        channelId: live
+        projectId: vocaapp-a1873
