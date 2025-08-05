@@ -1,0 +1,71 @@
+[debug] [2025-08-05T20:07:08.225Z] ----------------------------------------------------------------------
+[debug] [2025-08-05T20:07:08.230Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\chris\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init hosting
+[debug] [2025-08-05T20:07:08.230Z] CLI Version:   14.11.1
+[debug] [2025-08-05T20:07:08.231Z] Platform:      win32
+[debug] [2025-08-05T20:07:08.231Z] Node Version:  v22.13.1
+[debug] [2025-08-05T20:07:08.231Z] Time:          Tue Aug 05 2025 22:07:08 GMT+0200 (heure d’été d’Europe centrale)
+[debug] [2025-08-05T20:07:08.231Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-05T20:07:08.612Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-05T20:07:09.253Z] Running auto auth
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\chris\Documents\VocaApp
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] but for now we'll just set up a default project.
+[info] 
+[debug] [2025-08-05T20:07:24.613Z] Using project from CLI flag: integral-linker-435615-v7
+[debug] [2025-08-05T20:07:24.615Z] No OAuth tokens found
+[debug] [2025-08-05T20:07:24.626Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/integral-linker-435615-v7 [none]
+[debug] [2025-08-05T20:07:25.339Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/integral-linker-435615-v7 200
+[debug] [2025-08-05T20:07:25.339Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/integral-linker-435615-v7 {"projectId":"integral-linker-435615-v7","projectNumber":"492393102856","displayName":"Voca App","name":"projects/integral-linker-435615-v7","resources":{"hostingSite":"integral-linker-435615-v7"},"state":"ACTIVE","etag":"1_9808eae6-867d-4153-832c-f41aaa36e561"}
+[info] i  Using project integral-linker-435615-v7 (Voca App) 
+[info] 
+=== Hosting Setup
+[debug] [2025-08-05T20:07:25.354Z] No OAuth tokens found
+[debug] [2025-08-05T20:07:25.354Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/integral-linker-435615-v7 [none]
+[debug] [2025-08-05T20:07:25.655Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/integral-linker-435615-v7 200
+[debug] [2025-08-05T20:07:25.655Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/integral-linker-435615-v7 {"projectId":"integral-linker-435615-v7","projectNumber":"492393102856","displayName":"Voca App","name":"projects/integral-linker-435615-v7","resources":{"hostingSite":"integral-linker-435615-v7"},"state":"ACTIVE","etag":"1_9808eae6-867d-4153-832c-f41aaa36e561"}
+[info] 
+[info] Your public directory is the folder (relative to your project directory) that
+[info] will contain Hosting assets to be uploaded with firebase deploy. If you
+[info] have a build process for your assets, use your build's output directory.
+[info] 
+[debug] [2025-08-05T20:07:52.346Z] >>> [apiv2][query] GET https://www.gstatic.com/firebasejs/releases.json [none]
+[debug] [2025-08-05T20:07:52.730Z] <<< [apiv2][status] GET https://www.gstatic.com/firebasejs/releases.json 200
+[debug] [2025-08-05T20:07:52.731Z] <<< [apiv2][body] GET https://www.gstatic.com/firebasejs/releases.json {"current":{"version":"12.0.0","browserURL":"https://www.gstatic.com/firebasejs/12.0.0/firebase.js","packageURL":"https://www.gstatic.com/firebasejs/12.0.0/firebase.tgz"},"live":{"version":"12.0","browserURL":"https://www.gstatic.com/firebasejs/live/12.0/firebase.js","packageURL":"https://www.gstatic.com/firebasejs/live/12.0/firebase.tgz"},"components":{"ai":"https://www.gstatic.com/firebasejs/12.0.0/firebase-ai.js","analytics":"https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js","app":"https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js","app-check":"https://www.gstatic.com/firebasejs/12.0.0/firebase-app-check.js","auth":"https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js","auth/cordova":"https://www.gstatic.com/firebasejs/12.0.0/firebase-auth/cordova.js","auth/web-extension":"https://www.gstatic.com/firebasejs/12.0.0/firebase-auth/web-extension.js","functions":"https://www.gstatic.com/firebasejs/12.0.0/firebase-functions.js","firestore":"https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js","firestore/lite":"https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore/lite.js","installations":"https://www.gstatic.com/firebasejs/12.0.0/firebase-installations.js","storage":"https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js","performance":"https://www.gstatic.com/firebasejs/12.0.0/firebase-performance.js","remote-config":"https://www.gstatic.com/firebasejs/12.0.0/firebase-remote-config.js","messaging":"https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging.js","messaging/sw":"https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging/sw.js","database":"https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js","data-connect":"https://www.gstatic.com/firebasejs/12.0.0/firebase-data-connect.js","firestore.memory":"https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.memory.js"}}
+[info] +  Wrote public/index.html 
+[info] 
+[info] i  Detected a .git folder at C:\Users\chris\Documents\VocaApp 
+[info] i  Authorizing with GitHub to upload your service account to a GitHub repository's secrets store. 
+[info] 
+[info] Visit this URL on this device to log in:
+[info] https://github.com/login/oauth/authorize?client_id=89cf50f02ac6aaed3484&state=631629192&redirect_uri=http%3A%2F%2Flocalhost%3A9005&scope=read%3Auser%20repo%20public_repo
+[info] 
+[info] Waiting for authentication...
+[debug] [2025-08-05T20:07:54.295Z] >>> [apiv2][query] POST https://github.com/login/oauth/access_token [none]
+[debug] [2025-08-05T20:07:54.296Z] >>> [apiv2][body] POST https://github.com/login/oauth/access_token [stream]
+[debug] [2025-08-05T20:07:54.846Z] <<< [apiv2][status] POST https://github.com/login/oauth/access_token 200
+[debug] [2025-08-05T20:07:54.847Z] <<< [apiv2][body] POST https://github.com/login/oauth/access_token {"access_token":"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","token_type":"bearer","scope":"read:user,repo"}
+[debug] [2025-08-05T20:07:54.850Z] >>> [apiv2][query] GET https://api.github.com/user [none]
+[debug] [2025-08-05T20:07:55.749Z] <<< [apiv2][status] GET https://api.github.com/user 200
+[debug] [2025-08-05T20:07:55.750Z] <<< [apiv2][body] GET https://api.github.com/user {"login":"cdecugis","id":50516505,"node_id":"MDQ6VXNlcjUwNTE2NTA1","avatar_url":"https://avatars.githubusercontent.com/u/50516505?v=4","gravatar_id":"","url":"https://api.github.com/users/cdecugis","html_url":"https://github.com/cdecugis","followers_url":"https://api.github.com/users/cdecugis/followers","following_url":"https://api.github.com/users/cdecugis/following{/other_user}","gists_url":"https://api.github.com/users/cdecugis/gists{/gist_id}","starred_url":"https://api.github.com/users/cdecugis/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/cdecugis/subscriptions","organizations_url":"https://api.github.com/users/cdecugis/orgs","repos_url":"https://api.github.com/users/cdecugis/repos","events_url":"https://api.github.com/users/cdecugis/events{/privacy}","received_events_url":"https://api.github.com/users/cdecugis/received_events","type":"User","user_view_type":"private","site_admin":false,"name":null,"company":null,"blog":"","location":null,"email":null,"hireable":null,"bio":null,"twitter_username":null,"notification_email":null,"public_repos":1,"public_gists":0,"followers":0,"following":0,"created_at":"2019-05-11T10:00:01Z","updated_at":"2025-08-03T14:34:17Z","private_gists":0,"total_private_repos":1,"owned_private_repos":1,"disk_usage":33659,"collaborators":0,"two_factor_authentication":false,"plan":{"name":"free","space":976562499,"collaborators":0,"private_repos":10000}}
+[info] 
+[info] +  Success! Logged into GitHub as cdecugis 
+[info] 
