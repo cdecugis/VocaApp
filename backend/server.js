@@ -245,7 +245,7 @@ app.get("/api/getWord", async (req, res) => {
         const selected = data.find((el) => (r -= el.poids) < 0) || data[0];
         // console.log(`liste de mots avec coefficients : ${data.map(el => `${el.motFr} (${el.poids})`).join(", ")}`);
 
-        res.json({ index: selected.index, motFr: selected.motFr, tauxReussite });
+        res.json({ index: selected.index, motFr: selected.motFr, tauxReussite, maitrises });
         console.log(`Mot tiré: ${selected.motFr} (index: ${selected.index})`);
 
     } catch (err) {
