@@ -20,6 +20,7 @@ export default function App() {
   const [indexNouveau, setIndexNouveau] = useState(0);
   const [modeNouveaux, setModeNouveaux] = useState(false);
   const [taux, setTaux] = useState(0); // taux de réussite du lexique
+  const [maitrise, setMaitrise] = useState(0);
 
   const API = process.env.REACT_APP_API || "http://localhost:3001";
   const navigate = useNavigate();
@@ -81,6 +82,7 @@ export default function App() {
       setPremier(true);
       inputRef.current?.focus();
       setLoading(false);
+      setMaitrise(data.maitrise);
       setTaux(data.tauxReussite || 0); // mettre à jour le taux de réussite
     } catch (err) {
       console.error("Erreur lors de la récupération du mot :", err);
@@ -233,7 +235,7 @@ export default function App() {
       <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center">
         User <span className="text-blue-600">{localStorage.getItem("identifiant")}</span>
         <br />
-        Français → Roumain
+        Français → Roumain ${maitrises} mots appris
       </h1>
       <button
         onClick={handleDeconnexion}
