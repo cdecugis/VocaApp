@@ -1,11 +1,3 @@
-process.on('uncaughtException', (err) => {
-    console.error('🔥 Uncaught Exception:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('🔥 Unhandled Rejection:', reason);
-});
-
 import express from "express";
 import cors from "cors";
 import { google } from "googleapis";
