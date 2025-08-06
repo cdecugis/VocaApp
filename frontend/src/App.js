@@ -17,22 +17,8 @@ export default function App() {
   const [indexNouveau, setIndexNouveau] = useState(0);
   const [modeNouveaux, setModeNouveaux] = useState(false);
   const [taux, setTaux] = useState(0); // taux de réussite du lexique
-  const [maitrise, setMaitrise] = useState(0);
+  const [maitrises, setMaitrises] = useState(0);
 
-  import express from "express";
-  import cors from "cors";
-  import { google } from "googleapis";
-  import textToSpeech from "@google-cloud/text-to-speech";
-
-  import fs from "fs";
-  import path from "path";
-  import { fileURLToPath } from "url";
-
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const UTILISATEURS_ID = "1gDx3H4gbynYgLSTRTpKklzxaeEu0h05dVJz7wLB3LeA"; // ID de la feuille des utilisateurs
-
-  let credentialsPath;
 
   ///////////////// Fonction pour marquer un mot comme appris //////////////
   async function appris(motFr) {
@@ -72,7 +58,7 @@ export default function App() {
       setPremier(true);
       inputRef.current?.focus();
       setLoading(false);
-      setMaitrise(data.maitrise);
+      setMaitrises(data.maitrises);
       setTaux(data.tauxReussite || 0); // mettre à jour le taux de réussite
     } catch (err) {
       console.error("Erreur lors de la récupération du mot :", err);
