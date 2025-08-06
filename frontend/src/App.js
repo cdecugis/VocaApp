@@ -70,31 +70,24 @@ export default function App() {
     if (!onglet) return;
     setLoading(true);
     const sheetId = localStorage.getItem("sheetId");
-    const res = await fetch(`${API}/api/getWord?sheetId=${sheetId}&onglet=${onglet}`);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Backend error:", errorText);
-      throw new Error(errorText);
-    }
-
-    // si aucun mot appris, afficher un message
-    if (res.status === 400) {
-      setMot("Aucun mot appris encore, cliquez sur Nouveaux Mots !");
+    try {
+      const res = await fetch(`${API}/api/getWord?sheetId=${sheetId}&onglet=${onglet}`);
+      const data = await res.json();
+      setMot(data.motFr);
+      setIndex(data.index);
+      setReponse("");
+      setEtat("");
+      setCorrigerMode(false);
+      setPremier(true);
+      inputRef.current?.focus();
+      setLoading(false);
+      setTaux(data.tauxReussite || 0); // mettre à jour le taux de réussite
+    } catch (err) {
+      console.error("Erreur lors de la récupération du mot :", err);
+      setMot("Lancez l'apprentissage de nouveaux mots !");
       setLoading(false);
       return;
     }
-
-    const data = await res.json();
-    setMot(data.motFr);
-    setIndex(data.index);
-    setReponse("");
-    setEtat("");
-    setCorrigerMode(false);
-    setPremier(true);
-    inputRef.current?.focus();
-    setLoading(false);
-    setTaux(data.tauxReussite || 0); // mettre à jour le taux de réussite
   }
 
 
@@ -257,7 +250,7 @@ export default function App() {
             : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
-          Lexique ({taux}%)
+          {onglet === "lexique" ? `Lexique (${taux} %)` : "Lexique"}
         </button>
         <button
           onClick={() => setOnglet("verbes")}
@@ -266,7 +259,7 @@ export default function App() {
             : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
-          Verbes
+          {onglet === "verbes" ? `Verbes (${taux} %)` : "Verbes"}
         </button>
         <button
           onClick={() => setOnglet("démonstratifs")}
