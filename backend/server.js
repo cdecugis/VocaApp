@@ -85,6 +85,82 @@ app.get("/", (req, res) => {
 });
 
 
+/////////////// Apprendre 10 nouveaux mots ////////////////
+app.get("/api/learnNewWords", async (req, res) => {
+    const { sheetId, onglet } = req.query;
+    console.log(`Tirage de nouveaux mots pour l'onglet ${onglet}...`);
+
+    const data = await readSheet(sheetId, onglet); // fonction existante
+    const motsJamaisVus = data.filter(row => !row.appris); // appris une fois = colonne E
+
+    // Prendre 10 au hasard
+    // mélange le tableau
+    for (let i = motsJamaisVus.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [motsJamaisVus[i], motsJamaisVus[j]] = [motsJamaisVus[j], motsJamaisVus[i]];
+    }
+    const motsChoisis = motsJamaisVus.slice(0, 10); // prend les 10 premiers après mélange
+    console.log(`Tirage de ${motsChoisis.length} nouveaux mots...`);
+    console.log("Mots choisis :", motsChoisis.map(m => m.motFr).join(", "));
+    console.log("Mots choisis :", motsChoisis.map(m => m.motRo).join(", "));
+    res.json(motsChoisis);
+});
+
+
+/////////////// Marquer le mot comme appris ////////////////
+app.post("/api/markAsLearned", async (req, res) => {
+    const { sheetId, onglet } = req.query;
+    const { motFr } = req.body;
+    console.log(`Marquage du mot ${motFr} comme appris`);
+    if (!motFr) return res.status(400).send("Champs manquants");
+    try {
+        // recherche de l'index du mot dans la feuille
+        const sheets = await getSheets();
+        const source = await sheets.spreadsheets.values.get({
+            spreadsheetId: sheetId,
+            range: `${onglet}!A2:A`, // Colonne A pour les mots français
+        });
+        const index = source.data.values.findIndex(row => row[0]?.trim().toLowerCase() === motFr.trim().toLowerCase());
+        if (index === -1) return res.status(404).send("Mot non trouvé");
+        const ligne = index + 2; // +2 pour sauter l'en-tête
+        console.log(`Mot trouvé à la ligne ${ligne}, marquage comme appris...`);
+
+        // Mettre à jour la colonne E pour "appris"
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: sheetId,
+            range: `${onglet}!E${ligne}`, // Colonne E pour "appris"
+            valueInputOption: "RAW",
+            requestBody: {
+                values: [["oui"]], // Marquer comme appris
+            },
+        });
+        console.log(`Mot ${motFr} marqué comme appris !`);
+        res.json({ message: "Mot marqué comme appris" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Erreur serveur");
+    }
+});
+
+
+/////////////// Lire une feuille Google Sheets ////////////////
+async function readSheet(sheetId, onglet) {
+    const sheets = await getSheets();
+    const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${onglet}!A2:D`, // A2:D pour récupérer les colonnes A à D
+    });
+    const source = res.data.values || [];
+    return source.map(row => ({
+        motFr: row[0] || "",
+        motRo: row[1] || "",
+        tentatives: parseInt(row[2]) || 0, // Colonne C
+        reussites: parseInt(row[3]) || 0, // Colonne D
+        appris: row[4] === "oui", // Colonne E pour savoir si appris
+    }));
+}
+
+
 /////////////// Générer le son à partir du texte reçu ///////////////////
 app.post("/api/tts", async (req, res) => {
     try {
@@ -110,33 +186,21 @@ app.post("/api/tts", async (req, res) => {
 });
 
 
-////////////// Ton ID Google Sheet ////////////////////
-const SHEET_ID = "1Yto3-0IxVwYqL4dgNl4E7yCnG8ZWxPxn2HrYBeARc30";
-
 async function getSheets() {
     const client = await auth.getClient();
     return google.sheets({ version: "v4", auth: client });
 }
 
 
-////////////// Calcul pondération : plus un mot a d’erreurs KO, plus il a de poids //////////////
-function calculerPoids(index, tentatives, reussites) {
-    if (!tentatives) return 15; // Jamais demandé
-    const taux = reussites / tentatives;
-    return 1 + Math.round((1 - taux) * 9); // Entre 1 (100% réussite) et 10 (0%)
-}
-
-
-///////////////// Tirer un mot aléatoire en fonction de son poids ////////////////
 app.get("/api/getWord", async (req, res) => {
-    console.log("Tirage d'un mot...", credentialsPath);
+    console.log("Tirage d'un mot parmi ceux déjà appris");
     try {
         const SHEET_ID = req.query.sheetId;
         const onglet = req.query.onglet;
         const sheets = await getSheets();
         const resData = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
-            range: `${onglet}!A2:D`,
+            range: `${onglet}!A2:F`,
         });
 
         const source = resData.data.values || [];
@@ -144,24 +208,44 @@ app.get("/api/getWord", async (req, res) => {
             return res.status(400).json({ error: `Aucun mot trouvé dans l'onglet ${onglet}` });
         }
 
+        // Associer chaque ligne à son index d’origine
+        const avecIndex = source.map((row, index) => ({ index, row }));
+
+        // Garder uniquement les mots appris (colonne E === "oui")
+        const appris = avecIndex.filter(({ row }) => row[4] === "oui");
+        if (appris.length === 0) {
+            return res.status(400).json({ error: `Aucun mot appris trouvé dans l'onglet ${onglet}` });
+        }
+        console.log(`Nombre de mots appris : ${appris.length}`);
+
+        // Calculer le % : mots avec la dernière réussite / total appris
+        const maitrises = appris.filter(({ row }) => row[5] === "OK").length;
+        console.log(`Nombre de mots maîtrisés : ${maitrises}`);
+
+        const tauxReussite = Math.round((maitrises / appris.length) * 100);
+        console.log(`Taux de réussite : ${tauxReussite}%`);
+
         // Construire tableau avec poids
-        const data = source.map(([fr, ro], i) => {
-            const statLine = source[i] || [];
-            const tentatives = parseInt(statLine[2]) || 0;
-            const reussites = parseInt(statLine[3]) || 0;
+        const data = appris.map(({ index, row }) => {
+            const [fr, ro, tentativeStr, reussiteStr, apprisStr, derniereStr] = row;
+            const tentatives = parseInt(tentativeStr) || 0;
+            const reussites = parseInt(reussiteStr) || 0;
+            const déjàAppris = apprisStr === "oui"; // non utilisé dans le calcul
+            const derniere = derniereStr || "KO";
             return {
-                index: i,
+                index,
                 motFr: fr,
                 motRo: ro,
-                poids: calculerPoids(i, tentatives, reussites),
+                poids: calculerPoids(tentatives, reussites, derniere),
             };
         });
 
         const totalPoids = data.reduce((acc, el) => acc + el.poids, 0);
         let r = Math.random() * totalPoids;
         const selected = data.find((el) => (r -= el.poids) < 0) || data[0];
+        // console.log(`liste de mots avec coefficients : ${data.map(el => `${el.motFr} (${el.poids})`).join(", ")}`);
 
-        res.json({ index: selected.index, motFr: selected.motFr });
+        res.json({ index: selected.index, motFr: selected.motFr, tauxReussite });
         console.log(`Mot tiré: ${selected.motFr} (index: ${selected.index})`);
 
     } catch (err) {
@@ -171,10 +255,19 @@ app.get("/api/getWord", async (req, res) => {
 });
 
 
+////////////// Calcul pondération : plus un mot a d’erreurs KO, plus il a de poids //////////////
+function calculerPoids(tentatives, reussites, derniere) {
+    if (!tentatives || tentatives === 0) return 20; // Jamais demandé
+    if (derniere === "KO") return 20; // Dernière réponse KO
+    const taux = reussites / tentatives;
+    return 1 + Math.round((1 - taux) * 4); // Entre 1 (100% réussite) et 5 (0%)
+}
+
+
 ////////////// Envoi de la réponse et du résultat ////////////////
 app.post("/api/sendAnswer", async (req, res) => {
     try {
-        const { index, reponse, correction } = req.body;
+        const { index, reponse, premier } = req.body;
         const onglet = req.query.onglet;
         const SHEET_ID = req.query.sheetId;
 
@@ -183,7 +276,7 @@ app.post("/api/sendAnswer", async (req, res) => {
         const sheets = await getSheets();
         const source = await sheets.spreadsheets.values.get({
             spreadsheetId: SHEET_ID,
-            range: `${onglet}!A2:D`,
+            range: `${onglet}!A2:F`,
         });
 
         const liste = source.data.values || [];
@@ -210,19 +303,22 @@ app.post("/api/sendAnswer", async (req, res) => {
 
         let tentatives = parseInt(countRes.data.values?.[0]?.[0] || "0");
         let reussites = parseInt(countRes.data.values?.[0]?.[1] || "0");
+        let derniere = "KO";
+        let appris = "oui";
 
-        console.log(`Première tentative: ${correction}`);
-        if (correction) {
+        console.log(`Première tentative: ${premier}`);
+        if (premier) {
             console.log("C'est une première tentative");
             tentatives += 1;
             if (isCorrect) reussites += 1;
+            if (isCorrect) derniere = "OK";
 
             await sheets.spreadsheets.values.update({
                 spreadsheetId: SHEET_ID,
-                range: `${onglet}!C${ligne}:D${ligne}`,
+                range: `${onglet}!C${ligne}:F${ligne}`,
                 valueInputOption: "RAW",
                 requestBody: {
-                    values: [[tentatives, reussites]],
+                    values: [[tentatives, reussites, appris, derniere]],
                 },
             });
         }
@@ -304,10 +400,10 @@ app.post("/api/addWord", async (req, res) => {
             console.log(`Mot non trouvé, ajout à la fin...`);
             await sheets.spreadsheets.values.append({
                 spreadsheetId: SHEET_ID,
-                range: `${onglet}!A:D`, // on prépare aussi les colonnes C et D
+                range: `${onglet}!A:B`,
                 valueInputOption: "RAW",
                 requestBody: {
-                    values: [[motFr, motRo, "", ""]], // C et D vides au départ
+                    values: [[motFr, motRo]],
                 },
             });
             res.json({ message: "Mot ajouté" });

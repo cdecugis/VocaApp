@@ -16,6 +16,10 @@ export default function App() {
   const inputRef = useRef(null);
   const [statMot, setStatMot] = useState(null);
   const [onglet, setOnglet] = useState(null); // null au départ
+  const [nouveauxMots, setNouveauxMots] = useState([]);
+  const [indexNouveau, setIndexNouveau] = useState(0);
+  const [modeNouveaux, setModeNouveaux] = useState(false);
+  const [taux, setTaux] = useState(0); // taux de réussite du lexique
 
   const API = process.env.REACT_APP_API || "http://localhost:3001";
   const navigate = useNavigate();
@@ -26,18 +30,61 @@ export default function App() {
     audio.play();
   };
 
+  /////////////////// Fonction pour lancer l'apprentissage de 10 nouveaux mots ////////////////
+  async function lancerNouveauxMots() {
+    const sheetId = localStorage.getItem("sheetId");
+    const res = await fetch(`/api/learnNewWords?sheetId=${sheetId}&onglet=${onglet}`);
+    const data = await res.json();
+    console.log("Nouveaux mots tirés :", data);
+    setNouveauxMots(data);
+    setIndexNouveau(0);
+    setModeNouveaux(true);
+    prononce(data[0].motRo); // prononcer le 1er mot
+  }
 
-  ///////////////// Fonction pour récupérer un mot aléatoire selon les stats de l'utilisateur //////////////
-  async function getWord() {
-    if (!onglet) return;
+
+  ///////////////// Fonction pour marquer un mot comme appris //////////////
+  async function appris(motFr) {
+    console.log("Marquer mot comme appris :", motFr);
+    if (motFr === null || loading) return;
     setLoading(true);
     const sheetId = localStorage.getItem("sheetId");
-    const res = await fetch(`${API}/api/getWord?sheetId=${sheetId}&onglet=${onglet}`);
+    const res = await fetch(`${API}/api/markAsLearned?sheetId=${sheetId}&onglet=${onglet}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motFr }),
+    });
     if (!res.ok) {
       const errorText = await res.text();
       console.error("Backend error:", errorText);
       throw new Error(errorText);
     }
+    const data = await res.json();
+    console.log("Mot marqué comme appris :", data);
+    setLoading(false);
+  }
+
+
+  ///////////////// Récupération d'un mot aléatoire selon les mots déjà appris //////////////
+  async function getWord() {
+    if (!onglet) return;
+    setLoading(true);
+    const sheetId = localStorage.getItem("sheetId");
+    const res = await fetch(`${API}/api/getWord?sheetId=${sheetId}&onglet=${onglet}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Backend error:", errorText);
+      throw new Error(errorText);
+    }
+
+    // si aucun mot appris, afficher un message
+    if (res.status === 400) {
+      setMot("Aucun mot appris encore, cliquez sur Nouveaux Mots !");
+      setLoading(false);
+      return;
+    }
+
     const data = await res.json();
     setMot(data.motFr);
     setIndex(data.index);
@@ -47,6 +94,7 @@ export default function App() {
     setPremier(true);
     inputRef.current?.focus();
     setLoading(false);
+    setTaux(data.tauxReussite || 0); // mettre à jour le taux de réussite
   }
 
 
@@ -59,7 +107,7 @@ export default function App() {
     const res = await fetch(`${API}/api/sendAnswer?sheetId=${sheetId}&onglet=${onglet}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ index, reponse, correction: premier }),
+      body: JSON.stringify({ index, reponse, premier }),
     });
 
     const data = await res.json();
@@ -67,7 +115,7 @@ export default function App() {
 
     setBonneReponse(data.bonneReponse);
     setStatMot(data.stats); // même si faux
-    jouerPrononciation(data.bonneReponse);
+    prononce(data.bonneReponse);
 
     if (data.resultat === "OK") {
       setEtat(`✅ Correct ! : ${data.bonneReponse}`);
@@ -91,7 +139,7 @@ export default function App() {
 
 
   /////////////// Fonction pour prononcer le mot ///////////////
-  async function jouerPrononciation(texte) {
+  async function prononce(texte) {
     const res = await fetch(`${API}/api/tts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -153,6 +201,40 @@ export default function App() {
     navigate("/");
   }
 
+
+  function BoutonNouveauxMots({ onClick }) {
+    let bgColor = "bg-gray-400 hover:bg-gray-400"; // < 70%
+    let texte = "Nouveaux Mots (Vous n'êtes pas encore prêt !)";
+    let disabled = true;
+
+    if (taux >= 100) {
+      bgColor = "bg-pink-600 hover:bg-pink-700";
+      texte = "Nouveaux Mots (Perfection atteinte !!!)";
+      disabled = false;
+    } else if (taux >= 90) {
+      bgColor = "bg-green-500 hover:bg-green-600";
+      texte = "Nouveaux Mots (Vous êtes prêts !)";
+      disabled = false;
+    } else if (taux >= 70) {
+      bgColor = "bg-yellow-500 hover:bg-yellow-600";
+      texte = "Nouveaux Mots (Vous êtes presque prêt...)";
+      disabled = false;
+    }
+
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`mt-3 font-semibold px-6 py-2 rounded transition w-full max-w-md text-white ${bgColor} ${disabled ? "cursor-not-allowed opacity-60" : ""
+          }`}
+      >
+        {texte}
+      </button>
+    );
+  }
+
+
+  ////////////////// Affichage de l'interface //////////////////
   return (
     <div className="min-h-screen bg-blue-50 p-4 flex flex-col items-center justify-start overflow-auto">
       <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center">
@@ -175,7 +257,7 @@ export default function App() {
             : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
-          Lexique
+          Lexique ({taux}%)
         </button>
         <button
           onClick={() => setOnglet("verbes")}
@@ -207,13 +289,17 @@ export default function App() {
       </div>
 
       {!onglet ? (
-        <p className="mt-4 text-gray-700 text-lg">Choisissez un onglet pour commencer.</p>
+        <p className="mt-4 text-gray-700 text-lg">Choisissez un onglet pour commencer !</p>
       ) : (
         <>
-          <div className="text-xl sm:text-2xl mb-2">{mot}</div>
+          <div
+            hidden={modeNouveaux || loading}
+            className="text-xl sm:text-2xl mb-2">{mot}
+          </div>
           <input
             ref={inputRef}
             tabIndex={0}
+            hidden={modeNouveaux || loading}
             className="border rounded p-2 w-full max-w-md"
             type="text"
             value={reponse}
@@ -225,13 +311,19 @@ export default function App() {
 
           <button
             onClick={valider}
-            disabled={corrigerMode || loading}
+            disabled={corrigerMode || loading || modeNouveaux}
+            hidden={modeNouveaux || loading}
             className={`mt-3 font-semibold px-6 py-2 rounded transition 
         ${loading ? "bg-gray-400" : "bg-green-500 hover:bg-green-600 w-full max-w-md"} 
         text-white`}
           >
             {loading ? "..." : "Valider"}
           </button>
+
+          <BoutonNouveauxMots
+            onClick={lancerNouveauxMots}
+            hidden={modeNouveaux || corrigerMode || loading}
+          />
         </>
       )}
 
@@ -240,6 +332,39 @@ export default function App() {
       {statMot && (
         <div className="mt-4 text-sm text-gray-600">
           <p>{statMot.reussites} / {statMot.tentatives} ({statMot.pourcentage}%)</p>
+        </div>
+      )}
+
+      {modeNouveaux && (
+        <div>
+          <h2 className="text-xl font-bold mb-2">Mot {indexNouveau + 1} / {nouveauxMots.length}</h2>
+          <p className="text-2xl mb-4">{nouveauxMots[indexNouveau].motFr} → {nouveauxMots[indexNouveau].motRo}</p>
+          <button
+            onClick={() => {
+              const next = indexNouveau + 1;
+              if (next < nouveauxMots.length) {
+                setIndexNouveau(next);
+                prononce(nouveauxMots[next].motRo);
+                appris(nouveauxMots[next].motFr); // marquer le mot comme appris
+              } else {
+                // fin des 10 mots → retour au mode normal
+                setModeNouveaux(false);
+                getWord(); // ton tirage normal
+              }
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Suivant
+          </button>
+          <button
+            onClick={() => {
+              setModeNouveaux(false);
+              getWord(); // revenir au mot normal
+            }}
+            className="ml-2 px-4 py-2 bg-gray-300 text-gray-800 rounded"
+          >
+            Annuler
+          </button>
         </div>
       )}
 
