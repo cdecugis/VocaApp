@@ -198,7 +198,7 @@ export default function App() {
   function BoutonNouveauxMots({ onClick }) {
     let bgColor = "bg-gray-400 hover:bg-gray-400"; // < 70%
     let texte = "Nouveaux Mots (Vous n'êtes pas encore prêt !)";
-    let disabled = true;
+    let disabled = false;
 
     if (taux >= 100) {
       bgColor = "bg-pink-600 hover:bg-pink-700";
@@ -268,7 +268,7 @@ export default function App() {
             : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
-          Démonstratifs
+          {onglet === "démonstratifs" ? `Démonstratifs (${taux} %)` : "Démonstratifs"}
         </button>
         <button
           onClick={() => setOnglet("possessifs")}
@@ -277,7 +277,8 @@ export default function App() {
             : "bg-white text-blue-600 border border-blue-600"
             }`}
         >
-          Possessifs
+          {onglet === "possessifs" ? `Possessifs (${taux} %)` : "Possessifs"}
+
         </button>
       </div>
 
