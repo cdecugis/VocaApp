@@ -1,3 +1,6 @@
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+
 export default function App() {
   const [mot, setMot] = useState("");
   const [index, setIndex] = useState(null);
@@ -18,6 +21,27 @@ export default function App() {
   const [modeNouveaux, setModeNouveaux] = useState(false);
   const [taux, setTaux] = useState(0); // taux de réussite du lexique
   const [maitrises, setMaitrises] = useState(0);
+
+  const API = process.env.REACT_APP_API || "http://localhost:3001";
+  const navigate = useNavigate();
+
+  const playSound = (type) => {
+    const audio = new Audio(type === "OK" ? "success.mp3" : "failure.mp3");
+    audio.volume = type === "OK" ? 0.3 : 0.5;
+    audio.play();
+  };
+
+  /////////////////// Fonction pour lancer l'apprentissage de 10 nouveaux mots ////////////////
+  async function lancerNouveauxMots() {
+    const sheetId = localStorage.getItem("sheetId");
+    const res = await fetch(`/api/learnNewWords?sheetId=${sheetId}&onglet=${onglet}`);
+    const data = await res.json();
+    console.log("Nouveaux mots tirés :", data);
+    setNouveauxMots(data);
+    setIndexNouveau(0);
+    setModeNouveaux(true);
+    prononce(data[0].motRo); // prononcer le 1er mot
+  }
 
 
   ///////////////// Fonction pour marquer un mot comme appris //////////////
