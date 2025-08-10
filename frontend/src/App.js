@@ -219,7 +219,6 @@ export default function App() {
     return (
       <button
         onClick={onClick}
-        disabled={disabled}
         className={`mt-3 font-semibold px-6 py-2 rounded transition w-full max-w-md text-white ${bgColor} ${disabled ? "cursor-not-allowed opacity-60" : ""
           }`}
       >
