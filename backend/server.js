@@ -83,7 +83,7 @@ app.get("/api/learnNewWords", async (req, res) => {
     console.log(`Tirage de nouveaux mots pour l'onglet ${onglet}...`);
 
     const data = await readSheet(sheetId, onglet); // fonction existante
-    const motsJamaisVus = data.filter(row => !row.appris); // appris une fois = colonne E
+    const motsJamaisVus = data.filter(row => row.appris != "oui"); // appris une fois = colonne E
 
     // Prendre 10 au hasard
     // mélange le tableau
